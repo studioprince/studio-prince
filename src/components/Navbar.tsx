@@ -29,6 +29,10 @@ const Navbar = () => {
     };
   }, []);
 
+  // Determine if we're on the homepage for styling
+  const isHomepage = location.pathname === '/';
+  const textColor = isHomepage && !isScrolled ? 'text-white' : '';
+
   return (
     <header 
       className={cn(
@@ -42,7 +46,10 @@ const Navbar = () => {
         {/* Logo */}
         <Link 
           to="/" 
-          className="font-playfair font-semibold text-2xl tracking-wider"
+          className={cn(
+            "font-playfair font-semibold text-2xl tracking-wider",
+            textColor
+          )}
         >
           STUDIO PRINCE
         </Link>
@@ -51,7 +58,9 @@ const Navbar = () => {
         <nav className="hidden md:flex items-center space-x-8">
           <Link 
             to="/" 
-            className={cn("nav-link uppercase text-sm", 
+            className={cn(
+              "nav-link uppercase text-sm", 
+              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
               isActive('/') && "text-accent"
             )}
           >
@@ -59,7 +68,9 @@ const Navbar = () => {
           </Link>
           <Link 
             to="/portfolio" 
-            className={cn("nav-link uppercase text-sm", 
+            className={cn(
+              "nav-link uppercase text-sm", 
+              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
               isActive('/portfolio') && "text-accent"
             )}
           >
@@ -67,7 +78,9 @@ const Navbar = () => {
           </Link>
           <Link 
             to="/booking" 
-            className={cn("nav-link uppercase text-sm", 
+            className={cn(
+              "nav-link uppercase text-sm", 
+              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
               isActive('/booking') && "text-accent"
             )}
           >
@@ -75,7 +88,9 @@ const Navbar = () => {
           </Link>
           <Link 
             to="/contact" 
-            className={cn("nav-link uppercase text-sm", 
+            className={cn(
+              "nav-link uppercase text-sm", 
+              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
               isActive('/contact') && "text-accent"
             )}
           >
@@ -83,7 +98,10 @@ const Navbar = () => {
           </Link>
           <Link
             to="/auth"
-            className="ml-2 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className={cn(
+              "ml-2 p-2 rounded-full transition-colors",
+              isHomepage && !isScrolled ? "text-white hover:bg-white/20" : "hover:bg-gray-100"
+            )}
             aria-label="Account"
           >
             <User size={18} />
@@ -93,7 +111,10 @@ const Navbar = () => {
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2"
+          className={cn(
+            "md:hidden p-2",
+            isHomepage && !isScrolled ? "text-white" : ""
+          )}
           aria-label="Toggle menu"
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

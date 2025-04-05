@@ -12,6 +12,7 @@ const categories = [
   { id: 'product', name: 'Product' },
 ];
 
+// Updated image URLs to ensure all images are available
 const galleryImages: GalleryImage[] = [
   {
     id: '1',

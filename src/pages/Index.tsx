@@ -17,8 +17,10 @@ const Index = () => {
           <img 
             src="https://images.unsplash.com/photo-1581591524425-c7e0978865fc?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3" 
             alt="Professional Photography" 
-            className="w-full h-full object-cover opacity-70"
+            className="w-full h-full object-cover opacity-60"
           />
+          {/* Add a dark overlay to make text more visible */}
+          <div className="absolute inset-0 bg-black opacity-50"></div>
         </div>
 
         {/* Hero Content */}
