@@ -93,8 +93,8 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
       {/* Demo account info */}
       <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
         <p className="font-medium mb-1">Demo accounts:</p>
-        <p>Admin: admin@example.com / password</p>
-        <p>Client: emily@example.com / password</p>
+        <p>Admin: aditya@admin.com / 123</p>
+        <p>Client: omkar@client.com / 123</p>
       </div>
     </form>
   );

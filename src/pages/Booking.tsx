@@ -19,6 +19,21 @@ const Booking = () => {
         </div>
       </section>
 
+      {/* Admin Instructions Alert */}
+      <section className="section bg-blue-50">
+        <div className="container-custom max-w-4xl">
+          <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
+            <h3 className="font-semibold text-blue-800 mb-2">How the booking system works:</h3>
+            <ol className="list-decimal pl-5 text-blue-700 space-y-1">
+              <li>Client fills out and submits this booking form</li>
+              <li>The booking gets stored in the system with "Pending" status</li>
+              <li>Admin logs in with <strong>aditya@admin.com / 123</strong> to view all booking requests</li>
+              <li>Admin can confirm, cancel or mark bookings as completed from the dashboard</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
       {/* Booking Form Section */}
       <section className="section">
         <div className="container-custom max-w-4xl">

@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 
 // Types for our database
@@ -26,16 +27,16 @@ export interface User {
 // Initial admin user
 const ADMIN_USER: User = {
   id: 'admin-1',
-  name: 'Admin User',
-  email: 'admin@example.com',
+  name: 'Aditya',
+  email: 'aditya@admin.com',
   role: 'admin'
 };
 
 // Initial client user
 const CLIENT_USER: User = {
   id: 'client-1',
-  name: 'Emily Johnson',
-  email: 'emily@example.com', 
+  name: 'Omkar',
+  email: 'omkar@client.com', 
   role: 'client'
 };
 
@@ -43,33 +44,19 @@ const CLIENT_USER: User = {
 const initializeDB = () => {
   // Check if we already have data in localStorage
   if (!localStorage.getItem('studio_bookings')) {
-    // Sample booking data
+    // Sample booking data - just one example booking
     const sampleBookings: Booking[] = [
       {
         id: 'booking-1',
         userId: 'client-1',
-        customerName: 'Emily Johnson',
-        email: 'emily@example.com',
-        phone: '(555) 123-4567',
-        serviceType: 'Wedding Photography',
-        date: '2025-06-15',
-        time: '14:00',
-        location: 'Grand Plaza Hotel',
-        status: 'pending',
-        requestDate: '2025-04-02',
-        notes: 'Outdoor ceremony, indoor reception'
-      },
-      {
-        id: 'booking-2',
-        userId: 'client-1',
-        customerName: 'Emily Johnson',
-        email: 'emily@example.com',
+        customerName: 'Omkar',
+        email: 'omkar@client.com',
         phone: '(555) 123-4567',
         serviceType: 'Portrait Session',
         date: '2025-04-20',
         time: '10:00',
         location: 'Studio',
-        status: 'confirmed',
+        status: 'pending',
         requestDate: '2025-03-28',
       }
     ];
@@ -85,11 +72,11 @@ const initializeDB = () => {
   
   // Set up passwords for demo accounts
   if (!localStorage.getItem('user_pwd_admin-1')) {
-    localStorage.setItem('user_pwd_admin-1', 'password');
+    localStorage.setItem('user_pwd_admin-1', '123');
   }
   
   if (!localStorage.getItem('user_pwd_client-1')) {
-    localStorage.setItem('user_pwd_client-1', 'password');
+    localStorage.setItem('user_pwd_client-1', '123');
   }
 };
 
