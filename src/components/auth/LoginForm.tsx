@@ -1,12 +1,31 @@
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AuthContext } from '@/App';
 
 interface LoginFormProps {
   onSuccess: () => void;
   switchToRegister: () => void;
 }
+
+// Mock users for demo
+const MOCK_USERS = [
+  {
+    id: '1',
+    name: 'John Admin',
+    email: 'admin@example.com',
+    password: 'password123',
+    role: 'admin' as const
+  },
+  {
+    id: '2',
+    name: 'Jane Client',
+    email: 'client@example.com',
+    password: 'password123',
+    role: 'client' as const
+  }
+];
 
 const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   const [email, setEmail] = useState('');
@@ -14,6 +33,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +43,22 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
       // Mock login - in a real app, this would call an authentication API
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // For demo purposes, we'll accept any login
+      // Find user with matching credentials
+      const user = MOCK_USERS.find(
+        u => u.email === email && u.password === password
+      );
+
+      if (!user) {
+        throw new Error('Invalid credentials');
+      }
+
+      // Login successful
+      const { password: _, ...userData } = user;
+      login(userData);
+      
       toast({
         title: "Login successful",
-        description: "Welcome back to Studio Prince!",
+        description: `Welcome back, ${userData.name}!`,
       });
       
       onSuccess();
@@ -56,6 +88,9 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
           placeholder="your@email.com"
           required
         />
+        <p className="mt-1 text-sm text-gray-500">
+          Demo: admin@example.com or client@example.com
+        </p>
       </div>
 
       <div>
@@ -81,6 +116,9 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
+        <p className="mt-1 text-sm text-gray-500">
+          Demo password: password123
+        </p>
       </div>
 
       <div className="flex items-center justify-between">

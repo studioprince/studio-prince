@@ -1,23 +1,32 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { Camera } from 'lucide-react';
+import { AuthContext } from '@/App';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
+  
   const message = location.state?.message || null;
+  const from = location.state?.from || 'dashboard'; // Default redirect to dashboard
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    
+    // If user is already authenticated, redirect them
+    if (isAuthenticated) {
+      navigate(`/${from}`);
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleAuthSuccess = () => {
-    // Redirect to dashboard after successful auth
-    navigate('/dashboard');
+    // Redirect based on where the user came from
+    navigate(`/${from}`);
   };
 
   return (

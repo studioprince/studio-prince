@@ -1,13 +1,18 @@
 
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User } from 'lucide-react';
+import { useState, useEffect, useContext } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AuthContext } from '@/App';
+import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
+  const { toast } = useToast();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -31,7 +36,16 @@ const Navbar = () => {
 
   // Determine if we're on the homepage for styling
   const isHomepage = location.pathname === '/';
-  const textColor = isHomepage && !isScrolled ? 'text-white' : '';
+  const textColor = isHomepage && !isScrolled ? 'text-white nav-text-shadow' : '';
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/');
+  };
 
   return (
     <header 
@@ -60,17 +74,27 @@ const Navbar = () => {
             to="/" 
             className={cn(
               "nav-link uppercase text-sm", 
-              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/') && "text-accent"
             )}
           >
             Home
           </Link>
           <Link 
+            to="/about" 
+            className={cn(
+              "nav-link uppercase text-sm", 
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
+              isActive('/about') && "text-accent"
+            )}
+          >
+            About
+          </Link>
+          <Link 
             to="/portfolio" 
             className={cn(
               "nav-link uppercase text-sm", 
-              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/portfolio') && "text-accent"
             )}
           >
@@ -80,7 +104,7 @@ const Navbar = () => {
             to="/booking" 
             className={cn(
               "nav-link uppercase text-sm", 
-              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/booking') && "text-accent"
             )}
           >
@@ -90,22 +114,48 @@ const Navbar = () => {
             to="/contact" 
             className={cn(
               "nav-link uppercase text-sm", 
-              isHomepage && !isScrolled ? "text-white hover:text-accent" : "",
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/contact') && "text-accent"
             )}
           >
             Contact
           </Link>
-          <Link
-            to="/auth"
-            className={cn(
-              "ml-2 p-2 rounded-full transition-colors",
-              isHomepage && !isScrolled ? "text-white hover:bg-white/20" : "hover:bg-gray-100"
-            )}
-            aria-label="Account"
-          >
-            <User size={18} />
-          </Link>
+          
+          {user ? (
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/dashboard"
+                className={cn(
+                  "nav-link uppercase text-sm",
+                  isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
+                  isActive('/dashboard') && "text-accent"
+                )}
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={handleLogout}
+                className={cn(
+                  "ml-2 p-2 rounded-full transition-colors flex items-center",
+                  isHomepage && !isScrolled ? "text-white hover:bg-white/20" : "hover:bg-gray-100"
+                )}
+                aria-label="Logout"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className={cn(
+                "ml-2 p-2 rounded-full transition-colors",
+                isHomepage && !isScrolled ? "text-white hover:bg-white/20" : "hover:bg-gray-100"
+              )}
+              aria-label="Account"
+            >
+              <User size={18} />
+            </Link>
+          )}
         </nav>
 
         {/* Mobile menu button */}
@@ -113,7 +163,7 @@ const Navbar = () => {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className={cn(
             "md:hidden p-2",
-            isHomepage && !isScrolled ? "text-white" : ""
+            isHomepage && !isScrolled ? "text-white nav-text-shadow" : ""
           )}
           aria-label="Toggle menu"
         >
@@ -133,6 +183,15 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
+            </Link>
+            <Link 
+              to="/about" 
+              className={cn("py-2 px-4 text-center", 
+                isActive('/about') && "text-accent"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
             </Link>
             <Link 
               to="/portfolio" 
@@ -161,14 +220,39 @@ const Navbar = () => {
             >
               Contact
             </Link>
-            <Link 
-              to="/auth" 
-              className="py-2 px-4 text-center flex justify-center items-center gap-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <User size={18} />
-              <span>Account</span>
-            </Link>
+            
+            {user ? (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className={cn("py-2 px-4 text-center", 
+                    isActive('/dashboard') && "text-accent"
+                  )}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="py-2 px-4 text-center flex justify-center items-center gap-2"
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              <Link 
+                to="/auth" 
+                className="py-2 px-4 text-center flex justify-center items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User size={18} />
+                <span>Account</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

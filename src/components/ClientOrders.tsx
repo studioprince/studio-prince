@@ -1,12 +1,14 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Clock, Check, X } from 'lucide-react';
+import { AuthContext } from '@/App';
 
-// Mock data for demo purposes
-const mockOrders = [
+// Mock database for orders (in a real app this would be stored in a proper database)
+const ORDERS_DB = [
   {
     id: '101',
+    userId: '2', // Client user ID
     serviceType: 'Portrait Session',
     date: '2025-04-22',
     time: '14:00',
@@ -17,6 +19,7 @@ const mockOrders = [
   },
   {
     id: '102',
+    userId: '2', // Client user ID
     serviceType: 'Family Portrait',
     date: '2025-05-15',
     time: '10:00',
@@ -28,11 +31,22 @@ const mockOrders = [
 ];
 
 const ClientOrders = () => {
-  const [orders] = useState(mockOrders);
-  const [selectedOrder, setSelectedOrder] = useState<(typeof mockOrders)[0] | null>(null);
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
-  const viewOrderDetails = (order: typeof mockOrders[0]) => {
+  // Load orders for this user
+  useEffect(() => {
+    if (user) {
+      // Filter orders for this user from our mock database
+      // In a real app, this would be a database query
+      const userOrders = ORDERS_DB.filter(order => order.userId === user.id);
+      setOrders(userOrders);
+    }
+  }, [user]);
+
+  const viewOrderDetails = (order) => {
     setSelectedOrder(order);
   };
 
@@ -45,7 +59,7 @@ const ClientOrders = () => {
   };
 
   // Helper for status badge styling
-  const getStatusBadgeClasses = (status: string) => {
+  const getStatusBadgeClasses = (status) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -60,7 +74,7 @@ const ClientOrders = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status) => {
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4" />;

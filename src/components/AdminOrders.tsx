@@ -1,12 +1,14 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Eye, Check, X, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AuthContext } from '@/App';
 
-// Mock data for demo purposes
-const mockOrders = [
+// Mock data for all orders
+const ALL_ORDERS = [
   {
     id: '1',
+    userId: '2',
     customerName: 'Emily Johnson',
     email: 'emily@example.com',
     serviceType: 'Wedding Photography',
@@ -18,6 +20,7 @@ const mockOrders = [
   },
   {
     id: '2',
+    userId: '2',
     customerName: 'Michael Smith',
     email: 'michael@example.com',
     serviceType: 'Portrait Session',
@@ -29,6 +32,7 @@ const mockOrders = [
   },
   {
     id: '3',
+    userId: '3',
     customerName: 'Sarah Williams',
     email: 'sarah@example.com',
     serviceType: 'Event Coverage',
@@ -40,6 +44,7 @@ const mockOrders = [
   },
   {
     id: '4',
+    userId: '4',
     customerName: 'Robert Davis',
     email: 'robert@example.com',
     serviceType: 'Product Photography',
@@ -52,16 +57,25 @@ const mockOrders = [
 ];
 
 const AdminOrders = () => {
-  const [orders, setOrders] = useState(mockOrders);
-  const [selectedOrder, setSelectedOrder] = useState<(typeof mockOrders)[0] | null>(null);
+  const [orders, setOrders] = useState(ALL_ORDERS);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const { toast } = useToast();
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    // In a real app, this would be a database query
+    // Verify user is an admin
+    if (user?.role !== 'admin') {
+      return;
+    }
+  }, [user]);
 
   const filteredOrders = filterStatus === 'all' 
     ? orders 
     : orders.filter(order => order.status === filterStatus);
 
-  const viewOrderDetails = (order: typeof mockOrders[0]) => {
+  const viewOrderDetails = (order) => {
     setSelectedOrder(order);
   };
 
@@ -69,7 +83,7 @@ const AdminOrders = () => {
     setSelectedOrder(null);
   };
 
-  const updateOrderStatus = (id: string, newStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled') => {
+  const updateOrderStatus = (id, newStatus) => {
     // Update local state
     setOrders(orders.map(order => 
       order.id === id ? { ...order, status: newStatus } : order
@@ -86,7 +100,7 @@ const AdminOrders = () => {
   };
 
   // Helper for status badge styling
-  const getStatusBadgeClasses = (status: string) => {
+  const getStatusBadgeClasses = (status) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -101,7 +115,7 @@ const AdminOrders = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status) => {
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4" />;
@@ -122,7 +136,7 @@ const AdminOrders = () => {
         <h2 className="text-xl font-playfair font-semibold">Client Bookings</h2>
         
         {/* Filter buttons */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap space-x-2">
           <button
             onClick={() => setFilterStatus('all')}
             className={`px-3 py-1 text-sm rounded-md ${

@@ -1,43 +1,34 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Settings, User } from 'lucide-react';
 import AdminOrders from '@/components/AdminOrders';
 import ClientOrders from '@/components/ClientOrders';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock user data for demo purposes
-const mockUser = {
-  id: '1',
-  name: 'John Doe',
-  email: 'john@example.com',
-  role: 'client', // 'admin' or 'client'
-};
+import { AuthContext } from '@/App';
 
 const Dashboard = () => {
-  const [user, setUser] = useState(mockUser);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
-
-  const handleToggleRole = () => {
-    // Toggle between admin and client for demo purposes
-    setUser((prev) => ({
-      ...prev,
-      role: prev.role === 'admin' ? 'client' : 'admin',
-    }));
-
-    toast({
-      title: "Role switched",
-      description: `You are now viewing the dashboard as ${user.role === 'admin' ? 'client' : 'admin'}.`,
-    });
-  };
+    
+    // Redirect if not logged in
+    if (!user) {
+      navigate('/auth', { state: { from: 'dashboard' } });
+    }
+  }, [user, navigate]);
+  
+  // Early return if no user to avoid errors
+  if (!user) {
+    return null;
+  }
 
   const handleLogout = () => {
+    logout();
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
@@ -57,18 +48,13 @@ const Dashboard = () => {
             <div>
               <h1 className="text-2xl font-playfair font-semibold">{user.name}</h1>
               <p className="text-gray-600">{user.email}</p>
+              <p className="text-sm bg-gray-200 rounded px-2 py-0.5 inline-block mt-1">
+                {user.role === 'admin' ? 'Administrator' : 'Client'}
+              </p>
             </div>
           </div>
           
           <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-            <button 
-              onClick={handleToggleRole}
-              className="text-sm px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 inline-flex items-center gap-1"
-            >
-              <Settings className="h-4 w-4" />
-              <span>View as {user.role === 'admin' ? 'Client' : 'Admin'}</span>
-            </button>
-            
             <button 
               onClick={handleLogout}
               className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 inline-flex items-center gap-1"

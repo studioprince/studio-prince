@@ -1,8 +1,13 @@
-
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AuthContext } from '@/App';
+
+// Mock database for storing bookings
+let BOOKINGS_DB = [
+  // Existing bookings are imported from AdminOrders.tsx and ClientOrders.tsx
+];
 
 // Types for form data
 interface BookingFormData {
@@ -33,6 +38,18 @@ const BookingForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+
+  // Pre-fill form with user data if available
+  useState(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
+    }
+  });
 
   // Handle input changes
   const handleChange = (
@@ -47,8 +64,26 @@ const BookingForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulating API call
+    // Create new booking object
+    const newBooking = {
+      id: `booking-${Date.now()}`,
+      userId: user?.id || 'guest',
+      customerName: formData.name,
+      email: formData.email,
+      serviceType: formData.serviceType,
+      date: formData.date,
+      time: formData.time,
+      location: formData.location,
+      status: 'pending',
+      requestDate: new Date().toISOString().split('T')[0],
+      notes: formData.specialInstructions,
+    };
+
+    // In a real app, this would be an API call to save the booking
     setTimeout(() => {
+      // Add booking to our mock database
+      BOOKINGS_DB.push(newBooking);
+      
       // Success toast
       toast({
         title: "Booking Request Submitted",
@@ -59,10 +94,8 @@ const BookingForm = () => {
       setFormData(initialFormState);
       setIsSubmitting(false);
 
-      // Redirect to login/register if user is not authenticated
-      navigate('/auth', { 
-        state: { from: 'booking', message: 'Create an account to track your booking' }
-      });
+      // Redirect to dashboard to view the booking
+      navigate('/dashboard');
     }, 1500);
   };
 
@@ -140,11 +173,13 @@ const BookingForm = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Select a service</option>
-            <option value="wedding">Wedding Photography</option>
-            <option value="portrait">Portrait Session</option>
-            <option value="event">Event Coverage</option>
-            <option value="product">Product Photography</option>
-            <option value="other">Other</option>
+            <option value="Wedding Photography">Wedding Photography</option>
+            <option value="Portrait Session">Portrait Session</option>
+            <option value="Family Portrait">Family Portrait</option>
+            <option value="Event Coverage">Event Coverage</option>
+            <option value="Product Photography">Product Photography</option>
+            <option value="Commercial Shoot">Commercial Shoot</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         
@@ -161,6 +196,7 @@ const BookingForm = () => {
                 required
                 value={formData.date}
                 onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />

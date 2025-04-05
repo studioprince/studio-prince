@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AuthContext } from '@/App';
 
 interface RegisterFormProps {
   onSuccess: () => void;
@@ -18,6 +19,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login } = useContext(AuthContext);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,6 +44,17 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     try {
       // Mock registration - in a real app, this would call an API
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Create a new user object
+      const newUser = {
+        id: `user-${Date.now()}`, // Generate a unique ID
+        name: formData.name,
+        email: formData.email,
+        role: 'client' as const, // New users are always clients
+      };
+      
+      // Log the user in
+      login(newUser);
       
       toast({
         title: "Registration successful",
