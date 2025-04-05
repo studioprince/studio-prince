@@ -1,13 +1,10 @@
-import { useState, useContext } from 'react';
+
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthContext } from '@/App';
-
-// Mock database for storing bookings
-let BOOKINGS_DB = [
-  // Existing bookings are imported from AdminOrders.tsx and ClientOrders.tsx
-];
+import { dbService, Booking } from '@/services/database';
 
 // Types for form data
 interface BookingFormData {
@@ -41,7 +38,7 @@ const BookingForm = () => {
   const { user } = useContext(AuthContext);
 
   // Pre-fill form with user data if available
-  useState(() => {
+  useEffect(() => {
     if (user) {
       setFormData(prev => ({
         ...prev,
@@ -49,7 +46,7 @@ const BookingForm = () => {
         email: user.email || ''
       }));
     }
-  });
+  }, [user]);
 
   // Handle input changes
   const handleChange = (
@@ -65,11 +62,12 @@ const BookingForm = () => {
     setIsSubmitting(true);
 
     // Create new booking object
-    const newBooking = {
+    const newBooking: Booking = {
       id: `booking-${Date.now()}`,
       userId: user?.id || 'guest',
       customerName: formData.name,
       email: formData.email,
+      phone: formData.phone,
       serviceType: formData.serviceType,
       date: formData.date,
       time: formData.time,
@@ -79,24 +77,21 @@ const BookingForm = () => {
       notes: formData.specialInstructions,
     };
 
-    // In a real app, this would be an API call to save the booking
-    setTimeout(() => {
-      // Add booking to our mock database
-      BOOKINGS_DB.push(newBooking);
+    // Save booking to database
+    dbService.saveBooking(newBooking);
       
-      // Success toast
-      toast({
-        title: "Booking Request Submitted",
-        description: "We'll review your request and get back to you soon!",
-      });
+    // Success toast
+    toast({
+      title: "Booking Request Submitted",
+      description: "We'll review your request and get back to you soon!",
+    });
 
-      // Reset form
-      setFormData(initialFormState);
-      setIsSubmitting(false);
+    // Reset form
+    setFormData(initialFormState);
+    setIsSubmitting(false);
 
-      // Redirect to dashboard to view the booking
-      navigate('/dashboard');
-    }, 1500);
+    // Redirect to dashboard to view the booking
+    navigate('/dashboard');
   };
 
   return (

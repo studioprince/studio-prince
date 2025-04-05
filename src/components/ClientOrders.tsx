@@ -3,50 +3,26 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Clock, Check, X } from 'lucide-react';
 import { AuthContext } from '@/App';
-
-// Mock database for orders (in a real app this would be stored in a proper database)
-const ORDERS_DB = [
-  {
-    id: '101',
-    userId: '2', // Client user ID
-    serviceType: 'Portrait Session',
-    date: '2025-04-22',
-    time: '14:00',
-    location: 'Studio',
-    status: 'confirmed',
-    requestDate: '2025-04-01',
-    notes: 'Professional headshots for LinkedIn',
-  },
-  {
-    id: '102',
-    userId: '2', // Client user ID
-    serviceType: 'Family Portrait',
-    date: '2025-05-15',
-    time: '10:00',
-    location: 'City Park',
-    status: 'pending',
-    requestDate: '2025-04-03',
-    notes: 'Family of 5 including a dog',
-  },
-];
+import { dbService, Booking } from '@/services/database';
+import { useToast } from '@/hooks/use-toast';
 
 const ClientOrders = () => {
-  const [orders, setOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState<Booking[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Booking | null>(null);
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const { toast } = useToast();
 
   // Load orders for this user
   useEffect(() => {
     if (user) {
-      // Filter orders for this user from our mock database
-      // In a real app, this would be a database query
-      const userOrders = ORDERS_DB.filter(order => order.userId === user.id);
+      // Get user's bookings from database
+      const userOrders = dbService.getBookingsByUserId(user.id);
       setOrders(userOrders);
     }
   }, [user]);
 
-  const viewOrderDetails = (order) => {
+  const viewOrderDetails = (order: Booking) => {
     setSelectedOrder(order);
   };
 
@@ -58,8 +34,27 @@ const ClientOrders = () => {
     navigate('/booking');
   };
 
+  const handleCancelBooking = (id: string) => {
+    const updatedBooking = dbService.updateBookingStatus(id, 'cancelled');
+    
+    if (updatedBooking) {
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === id ? updatedBooking : order
+      ));
+      
+      // Close modal
+      setSelectedOrder(null);
+      
+      toast({
+        title: "Booking cancelled",
+        description: "Your booking has been cancelled successfully."
+      });
+    }
+  };
+
   // Helper for status badge styling
-  const getStatusBadgeClasses = (status) => {
+  const getStatusBadgeClasses = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -74,7 +69,7 @@ const ClientOrders = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4" />;
@@ -230,10 +225,18 @@ const ClientOrders = () => {
                 </div>
               )}
               
-              <div className="pt-4 border-t flex justify-end">
+              <div className="pt-4 border-t flex justify-between">
+                {selectedOrder.status === 'pending' && (
+                  <button
+                    onClick={() => handleCancelBooking(selectedOrder.id)}
+                    className="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 text-sm"
+                  >
+                    Cancel Booking
+                  </button>
+                )}
                 <button
                   onClick={closeOrderDetails}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm ml-auto"
                 >
                   Close
                 </button>

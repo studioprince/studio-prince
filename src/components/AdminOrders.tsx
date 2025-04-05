@@ -1,73 +1,23 @@
 
 import { useState, useEffect, useContext } from 'react';
-import { Eye, Check, X, Clock } from 'lucide-react';
+import { Eye, Check, X, Clock, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthContext } from '@/App';
-
-// Mock data for all orders
-const ALL_ORDERS = [
-  {
-    id: '1',
-    userId: '2',
-    customerName: 'Emily Johnson',
-    email: 'emily@example.com',
-    serviceType: 'Wedding Photography',
-    date: '2025-06-15',
-    time: '14:00',
-    location: 'Grand Plaza Hotel',
-    status: 'pending',
-    requestDate: '2025-04-02',
-  },
-  {
-    id: '2',
-    userId: '2',
-    customerName: 'Michael Smith',
-    email: 'michael@example.com',
-    serviceType: 'Portrait Session',
-    date: '2025-04-20',
-    time: '10:00',
-    location: 'Studio',
-    status: 'confirmed',
-    requestDate: '2025-03-28',
-  },
-  {
-    id: '3',
-    userId: '3',
-    customerName: 'Sarah Williams',
-    email: 'sarah@example.com',
-    serviceType: 'Event Coverage',
-    date: '2025-05-05',
-    time: '18:00',
-    location: 'City Convention Center',
-    status: 'completed',
-    requestDate: '2025-03-15',
-  },
-  {
-    id: '4',
-    userId: '4',
-    customerName: 'Robert Davis',
-    email: 'robert@example.com',
-    serviceType: 'Product Photography',
-    date: '2025-04-12',
-    time: '09:30',
-    location: 'Studio',
-    status: 'pending',
-    requestDate: '2025-04-01',
-  },
-];
+import { dbService, Booking } from '@/services/database';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 
 const AdminOrders = () => {
-  const [orders, setOrders] = useState(ALL_ORDERS);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState<Booking[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const { toast } = useToast();
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    // In a real app, this would be a database query
-    // Verify user is an admin
-    if (user?.role !== 'admin') {
-      return;
+    // Verify user is an admin and load orders
+    if (user?.role === 'admin') {
+      const allBookings = dbService.getBookings();
+      setOrders(allBookings);
     }
   }, [user]);
 
@@ -75,7 +25,7 @@ const AdminOrders = () => {
     ? orders 
     : orders.filter(order => order.status === filterStatus);
 
-  const viewOrderDetails = (order) => {
+  const viewOrderDetails = (order: Booking) => {
     setSelectedOrder(order);
   };
 
@@ -83,24 +33,28 @@ const AdminOrders = () => {
     setSelectedOrder(null);
   };
 
-  const updateOrderStatus = (id, newStatus) => {
-    // Update local state
-    setOrders(orders.map(order => 
-      order.id === id ? { ...order, status: newStatus } : order
-    ));
+  const updateOrderStatus = (id: string, newStatus: Booking['status']) => {
+    const updatedBooking = dbService.updateBookingStatus(id, newStatus);
     
-    // Close modal
-    setSelectedOrder(null);
-    
-    // Show success toast
-    toast({
-      title: "Status updated",
-      description: `Order #${id} has been marked as ${newStatus}.`,
-    });
+    if (updatedBooking) {
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === id ? updatedBooking : order
+      ));
+      
+      // Close modal
+      setSelectedOrder(null);
+      
+      // Show success toast
+      toast({
+        title: "Status updated",
+        description: `Order #${id} has been marked as ${newStatus}.`,
+      });
+    }
   };
 
   // Helper for status badge styling
-  const getStatusBadgeClasses = (status) => {
+  const getStatusBadgeClasses = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -115,7 +69,7 @@ const AdminOrders = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4" />;
@@ -169,52 +123,50 @@ const AdminOrders = () => {
           >
             Completed
           </button>
+          <button
+            onClick={() => setFilterStatus('cancelled')}
+            className={`px-3 py-1 text-sm rounded-md ${
+              filterStatus === 'cancelled' ? 'bg-red-200 text-red-800' : 'bg-gray-100'
+            }`}
+          >
+            Cancelled
+          </button>
         </div>
       </div>
       
       {/* Orders Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white rounded-lg overflow-hidden">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Customer
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Service
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date & Time
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Service</TableHead>
+              <TableHead>Date & Time</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <TableRow key={order.id}>
+                  <TableCell>
                     <div className="font-medium text-gray-900">{order.customerName}</div>
                     <div className="text-sm text-gray-500">{order.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
                     {order.serviceType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
                     {new Date(order.date).toLocaleDateString()} at {order.time}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </TableCell>
+                  <TableCell>
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClasses(order.status)}`}>
                       {getStatusIcon(order.status)}
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  </TableCell>
+                  <TableCell>
                     <button
                       onClick={() => viewOrderDetails(order)}
                       className="text-primary hover:text-primary-dark inline-flex items-center gap-1"
@@ -222,18 +174,18 @@ const AdminOrders = () => {
                       <Eye className="h-4 w-4" />
                       View
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-gray-500">
                   No bookings found matching the current filter.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* Order Detail Modal */}
@@ -255,6 +207,7 @@ const AdminOrders = () => {
                   <h4 className="text-sm font-medium text-gray-500">Customer Information</h4>
                   <p className="font-medium">{selectedOrder.customerName}</p>
                   <p className="text-gray-600">{selectedOrder.email}</p>
+                  <p className="text-gray-600">{selectedOrder.phone}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Booking Status</h4>
@@ -279,6 +232,12 @@ const AdminOrders = () => {
                   <h4 className="text-sm font-medium text-gray-500">Location</h4>
                   <p>{selectedOrder.location}</p>
                 </div>
+                {selectedOrder.notes && (
+                  <div className="md:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-500">Special Instructions</h4>
+                    <p className="text-gray-700">{selectedOrder.notes}</p>
+                  </div>
+                )}
               </div>
               
               {/* Action buttons */}
