@@ -3,6 +3,7 @@ import { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/App';
 import { dbService } from '@/services/database';
+import { toast } from "@/hooks/use-toast";
 
 type LoginFormProps = {
   onSuccess: () => void;
@@ -19,15 +20,35 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Login user using our database service
-    const user = dbService.loginUser(email, password);
-    
-    if (user) {
-      login(user);
-      onSuccess();
+    try {
+      // Login user using our database service
+      const user = dbService.loginUser(email, password);
+      
+      if (user) {
+        login(user);
+        onSuccess();
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
+  };
+
+  // Helper function to fill demo credentials
+  const fillDemoCredentials = (type: 'admin' | 'client') => {
+    if (type === 'admin') {
+      setEmail('aditya@admin.com');
+      setPassword('123');
+    } else {
+      setEmail('omkar@client.com');
+      setPassword('123');
+    }
   };
 
   return (
@@ -93,8 +114,28 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
       {/* Demo account info */}
       <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
         <p className="font-medium mb-1">Demo accounts:</p>
-        <p>Admin: aditya@admin.com / 123</p>
-        <p>Client: omkar@client.com / 123</p>
+        <div className="flex flex-col space-y-1">
+          <div className="flex justify-between">
+            <p>Admin: aditya@admin.com / 123</p>
+            <button 
+              type="button"
+              onClick={() => fillDemoCredentials('admin')}
+              className="text-xs text-primary hover:underline"
+            >
+              Fill
+            </button>
+          </div>
+          <div className="flex justify-between">
+            <p>Client: omkar@client.com / 123</p>
+            <button 
+              type="button"
+              onClick={() => fillDemoCredentials('client')}
+              className="text-xs text-primary hover:underline"
+            >
+              Fill
+            </button>
+          </div>
+        </div>
       </div>
     </form>
   );
