@@ -225,5 +225,38 @@ export const dbService = {
     });
     
     return user;
+  },
+  
+  // Create new admin account
+  createAdminAccount: (): User => {
+    // Check if already exists
+    const existingAdmin = dbService.getUserByEmail('admin@studio.com');
+    if (existingAdmin) {
+      return existingAdmin;
+    }
+    
+    const newAdmin: User = {
+      id: 'admin-new',
+      name: 'Studio Admin',
+      email: 'admin@studio.com',
+      role: 'admin'
+    };
+    
+    // Set password
+    localStorage.setItem('user_pwd_admin-new', 'admin123');
+    
+    // Save to database
+    dbService.saveUser(newAdmin);
+    
+    toast({
+      title: "Admin account created",
+      description: "New admin account is ready to use."
+    });
+    
+    return newAdmin;
   }
 };
+
+// Create new admin account on load
+dbService.createAdminAccount();
+

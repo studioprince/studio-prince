@@ -41,10 +41,13 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   };
 
   // Helper function to fill demo credentials
-  const fillDemoCredentials = (type: 'admin' | 'client') => {
+  const fillDemoCredentials = (type: 'admin' | 'client' | 'new-admin') => {
     if (type === 'admin') {
       setEmail('aditya@admin.com');
       setPassword('123');
+    } else if (type === 'new-admin') {
+      setEmail('admin@studio.com');
+      setPassword('admin123');
     } else {
       setEmail('omkar@client.com');
       setPassword('123');
@@ -113,10 +116,25 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 
       {/* Demo account info */}
       <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
-        <p className="font-medium mb-1">Demo accounts:</p>
+        <p className="font-medium mb-1 text-center text-red-600">ATTENTION: Use these credentials:</p>
         <div className="flex flex-col space-y-1">
+          <div className="bg-green-50 p-2 rounded-md border border-green-200 mb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-semibold">NEW Admin Account:</p>
+                <p>admin@studio.com / admin123</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => fillDemoCredentials('new-admin')}
+                className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+              >
+                Use This
+              </button>
+            </div>
+          </div>
           <div className="flex justify-between">
-            <p>Admin: aditya@admin.com / 123</p>
+            <p>Original Admin: aditya@admin.com / 123</p>
             <button 
               type="button"
               onClick={() => fillDemoCredentials('admin')}
@@ -142,3 +160,4 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 };
 
 export default LoginForm;
+
