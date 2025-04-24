@@ -5,6 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, Settings, User } from 'lucide-react';
 import AdminOrders from '@/components/AdminOrders';
 import ClientOrders from '@/components/ClientOrders';
+import ClientGallery from '@/components/gallery/ClientGallery';
+import AdminGallery from '@/components/gallery/AdminGallery';
+import InvoiceList from '@/components/invoices/InvoiceList';
 import { useToast } from '@/hooks/use-toast';
 import { AuthContext } from '@/App';
 import { dbService } from '@/services/database';
@@ -124,17 +127,40 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {user.role === 'admin' ? (
             <div className="p-6">
-              <AdminOrders />
+              <Tabs defaultValue="orders">
+                <TabsList className="mb-6">
+                  <TabsTrigger value="orders">Orders</TabsTrigger>
+                  <TabsTrigger value="galleries">Galleries</TabsTrigger>
+                  <TabsTrigger value="invoices">Invoices</TabsTrigger>
+                </TabsList>
+                <TabsContent value="orders">
+                  <AdminOrders />
+                </TabsContent>
+                <TabsContent value="galleries">
+                  <AdminGallery />
+                </TabsContent>
+                <TabsContent value="invoices">
+                  <InvoiceList />
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
             <div className="p-6">
               <Tabs defaultValue="bookings">
                 <TabsList className="mb-6">
                   <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+                  <TabsTrigger value="galleries">My Galleries</TabsTrigger>
+                  <TabsTrigger value="invoices">My Invoices</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                 </TabsList>
                 <TabsContent value="bookings">
                   <ClientOrders />
+                </TabsContent>
+                <TabsContent value="galleries">
+                  <ClientGallery />
+                </TabsContent>
+                <TabsContent value="invoices">
+                  <InvoiceList />
                 </TabsContent>
                 <TabsContent value="profile">
                   <div className="max-w-lg mx-auto">
