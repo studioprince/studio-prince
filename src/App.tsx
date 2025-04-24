@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +20,7 @@ export interface User {
   name: string;
   email: string;
   role: 'client' | 'admin';
+  phone?: string;
 }
 
 interface AuthContextType {

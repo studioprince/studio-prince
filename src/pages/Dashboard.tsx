@@ -7,11 +7,17 @@ import AdminOrders from '@/components/AdminOrders';
 import ClientOrders from '@/components/ClientOrders';
 import { useToast } from '@/hooks/use-toast';
 import { AuthContext } from '@/App';
+import { dbService } from '@/services/database';
 
 const Dashboard = () => {
-  const { user, logout } = useContext(AuthContext);
+  const { user, login } = useContext(AuthContext);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '+91 '
+  });
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -35,6 +41,44 @@ const Dashboard = () => {
     });
     
     navigate('/');
+  };
+
+  const handleProfileUpdate = () => {
+    if (!user) return;
+
+    const updatedUser = {
+      ...user,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone
+    };
+
+    // Save to database
+    dbService.saveUser(updatedUser);
+    
+    // Update context
+    login(updatedUser);
+    
+    toast({
+      title: "Profile updated",
+      description: "Your profile has been updated successfully."
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Ensure phone number starts with +91
+    if (!value.startsWith('+91 ')) {
+      value = '+91 ' + value.replace('+91 ', '');
+    }
+    
+    setFormData(prev => ({ ...prev, phone: value }));
   };
 
   return (
@@ -84,7 +128,7 @@ const Dashboard = () => {
                   <div className="max-w-lg mx-auto">
                     <h2 className="text-xl font-playfair font-semibold mb-6">Your Profile</h2>
                     
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                       <div>
                         <label htmlFor="name" className="block text-sm font-medium mb-1">
                           Full Name
@@ -92,7 +136,8 @@ const Dashboard = () => {
                         <input
                           id="name"
                           type="text"
-                          defaultValue={user.name}
+                          value={formData.name}
+                          onChange={handleInputChange}
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -104,7 +149,8 @@ const Dashboard = () => {
                         <input
                           id="email"
                           type="email"
-                          defaultValue={user.email}
+                          value={formData.email}
+                          onChange={handleInputChange}
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -116,8 +162,9 @@ const Dashboard = () => {
                         <input
                           id="phone"
                           type="tel"
-                          defaultValue=""
-                          placeholder="(555) 123-4567"
+                          value={formData.phone}
+                          onChange={handlePhoneChange}
+                          placeholder="+91 9876543210"
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
@@ -125,6 +172,7 @@ const Dashboard = () => {
                       <div className="pt-4">
                         <button
                           type="button"
+                          onClick={handleProfileUpdate}
                           className="btn-primary"
                         >
                           Save Changes
