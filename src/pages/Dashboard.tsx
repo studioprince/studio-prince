@@ -10,7 +10,7 @@ import { AuthContext } from '@/App';
 import { dbService } from '@/services/database';
 
 const Dashboard = () => {
-  const { user, login } = useContext(AuthContext);
+  const { user, login, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -18,6 +18,17 @@ const Dashboard = () => {
     email: user?.email || '',
     phone: user?.phone || '+91 '
   });
+  
+  // Update form data when user data changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '+91 '
+      });
+    }
+  }, [user]);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -95,6 +106,7 @@ const Dashboard = () => {
               <p className="text-sm bg-gray-200 rounded px-2 py-0.5 inline-block mt-1">
                 {user.role === 'admin' ? 'Administrator' : 'Client'}
               </p>
+              {user.phone && <p className="text-gray-600 text-sm mt-1">{user.phone}</p>}
             </div>
           </div>
           
