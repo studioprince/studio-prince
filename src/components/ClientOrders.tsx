@@ -1,8 +1,8 @@
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Clock, Check, X } from 'lucide-react';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 import { dbService, Booking } from '@/services/database';
 import { useToast } from '@/hooks/use-toast';
 
@@ -10,7 +10,7 @@ const ClientOrders = () => {
   const [orders, setOrders] = useState<Booking[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Booking | null>(null);
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Load orders for this user

@@ -1,435 +1,186 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
-import { User, Edit, Trash2, UserPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: 'super_admin' | 'admin' | 'client';
-  created_at: string;
-  phone?: string;
-}
+import { dbService, User } from '@/services/database';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Edit, Trash, User as UserIcon } from 'lucide-react';
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  
-  const [newUser, setNewUser] = useState({
-    email: '',
+  const [users, setUsers] = useState<User[]>([]);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState({
+    id: '',
     name: '',
-    role: 'client' as const,
-    password: '',
-    phone: ''
+    email: '',
+    role: 'client'
   });
-  
   const { toast } = useToast();
-  
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setUsers(data as UserProfile[]);
-    } catch (error: any) {
-      toast({
-        title: "Error fetching users",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+
   useEffect(() => {
-    fetchUsers();
+    // Load users from database
+    const allUsers = dbService.getUsers();
+    setUsers(allUsers);
   }, []);
-  
-  const handleCreateUser = async () => {
-    try {
-      // Create user with Supabase auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUser.email,
-        password: newUser.password,
-        email_confirm: true
-      });
-      
-      if (authError) throw authError;
-      
-      if (authData.user) {
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([{
-            id: authData.user.id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
-            phone: newUser.phone || null
-          }]);
-          
-        if (profileError) throw profileError;
-        
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
+      const deleted = dbService.deleteUser(user.id);
+      if (deleted) {
+        setUsers(users.filter(u => u.id !== user.id));
         toast({
-          title: "User created",
-          description: "The user has been created successfully."
+          title: "User deleted",
+          description: `"${user.name}" has been deleted successfully.`
         });
-        
-        // Reset form
-        setNewUser({
-          email: '',
-          name: '',
-          role: 'client',
-          password: '',
-          phone: ''
-        });
-        
-        // Close dialog
-        setIsCreateDialogOpen(false);
-        
-        // Refresh user list
-        fetchUsers();
       }
-    } catch (error: any) {
-      toast({
-        title: "Error creating user",
-        description: error.message,
-        variant: "destructive"
-      });
     }
   };
-  
-  const handleEditUser = async () => {
-    if (!currentUser) return;
-    
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          name: currentUser.name,
-          role: currentUser.role,
-          phone: currentUser.phone || null
-        })
-        .eq('id', currentUser.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "User updated",
-        description: "The user has been updated successfully."
-      });
-      
-      // Close dialog
-      setIsEditDialogOpen(false);
-      
-      // Refresh user list
-      fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Error updating user",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleDeleteUser = async () => {
-    if (!currentUser) return;
-    
-    try {
-      // Delete from auth (cascade will delete profile)
-      const { error } = await supabase.auth.admin.deleteUser(currentUser.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "User deleted",
-        description: "The user has been deleted successfully."
-      });
-      
-      // Close dialog
-      setIsDeleteDialogOpen(false);
-      
-      // Refresh user list
-      fetchUsers();
-    } catch (error: any) {
-      toast({
-        title: "Error deleting user",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+
+  const handleUpdateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const updatedUser: User = {
+      id: formData.id,
+      name: formData.name,
+      email: formData.email,
+      role: formData.role
+    };
+
+    const savedUser = dbService.saveUser(updatedUser);
+
+    setUsers(users.map(user =>
+      user.id === savedUser.id ? savedUser : user
+    ));
+
+    setEditingUser(null);
+
+    toast({
+      title: "User updated",
+      description: `"${savedUser.name}" has been updated successfully.`
+    });
   };
-  
-  const openEditDialog = (user: UserProfile) => {
-    setCurrentUser(user);
-    setIsEditDialogOpen(true);
+
+  const handleRoleChange = (userId: string, newRole: 'super_admin' | 'admin' | 'client') => {
+    setUsers(users.map(user => {
+      if (user.id === userId) {
+        const updatedUser = { ...user, role: newRole };
+        dbService.saveUser(updatedUser);
+        toast({
+          title: "Role updated",
+          description: `"${updatedUser.name}" role has been updated to ${newRole} successfully.`
+        });
+        return updatedUser;
+      }
+      return user;
+    }));
   };
-  
-  const openDeleteDialog = (user: UserProfile) => {
-    setCurrentUser(user);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  const getRoleBadgeColor = (role: UserProfile['role']) => {
-    switch (role) {
-      case 'super_admin':
-        return 'bg-red-100 text-red-800';
-      case 'admin':
-        return 'bg-blue-100 text-blue-800';
-      case 'client':
-      default:
-        return 'bg-green-100 text-green-800';
-    }
-  };
-  
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div>
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-playfair font-semibold">User Management</h2>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
-          Add User
-        </Button>
       </div>
-      
-      {isLoading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
+
+      {/* Users Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.length > 0 ? (
+              users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role === 'super_admin' ? 'Super Admin' : (user.role === 'admin' ? 'Admin' : 'Client')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        onClick={() => openEditDialog(user)}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        onClick={() => openDeleteDialog(user)}
-                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4" />
+                      <span className="font-medium">{user.name}</span>
                     </div>
                   </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {editingUser?.id === user.id ? (
+                      <select
+                        name="role"
+                        value={formData.role}
+                        onChange={handleInputChange}
+                        className="w-full px-2 py-1 border rounded"
+                      >
+                        <option value="client">Client</option>
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    ) : (
+                      user.role
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingUser?.id === user.id ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleUpdateUser}
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-700"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        >
+                          <Trash className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      
-      {/* Create User Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label htmlFor="name" className="block text-sm font-medium mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={newUser.name}
-                  onChange={e => setNewUser({...newUser, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div className="col-span-2">
-                <label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={e => setNewUser({...newUser, email: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div className="col-span-2">
-                <label htmlFor="password" className="block text-sm font-medium mb-1">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={e => setNewUser({...newUser, password: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium mb-1">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  value={newUser.role}
-                  onChange={e => setNewUser({...newUser, role: e.target.value as 'super_admin' | 'admin' | 'client'})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="client">Client</option>
-                  <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium mb-1">
-                  Phone (optional)
-                </label>
-                <input
-                  id="phone"
-                  type="text"
-                  value={newUser.phone}
-                  onChange={e => setNewUser({...newUser, phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateUser}>Create User</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit User Dialog */}
-      {currentUser && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label htmlFor="name" className="block text-sm font-medium mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    value={currentUser.name}
-                    onChange={e => setCurrentUser({...currentUser, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={currentUser.email}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="edit-role" className="block text-sm font-medium mb-1">
-                    Role
-                  </label>
-                  <select
-                    id="edit-role"
-                    value={currentUser.role}
-                    onChange={e => setCurrentUser({...currentUser, role: e.target.value as 'super_admin' | 'admin' | 'client'})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="client">Client</option>
-                    <option value="admin">Admin</option>
-                    <option value="super_admin">Super Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="edit-phone" className="block text-sm font-medium mb-1">
-                    Phone (optional)
-                  </label>
-                  <input
-                    id="edit-phone"
-                    type="text"
-                    value={currentUser.phone || ''}
-                    onChange={e => setCurrentUser({...currentUser, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleEditUser}>Update User</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-      
-      {/* Delete User Confirmation Dialog */}
-      {currentUser && (
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Delete User</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              <p>Are you sure you want to delete {currentUser.name}? This action cannot be undone.</p>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDeleteUser}>Delete User</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No users found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

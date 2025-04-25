@@ -1,12 +1,11 @@
-
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Invoice, dbService } from '@/services/database';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { Calendar, Download, Plus } from 'lucide-react';
 
 const InvoiceList = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   
@@ -63,7 +62,6 @@ const InvoiceList = () => {
   };
   
   const handleCreateInvoice = () => {
-    // This would open an invoice creation form
     alert("Invoice creation feature coming soon!");
   };
   
@@ -160,7 +158,6 @@ const InvoiceList = () => {
         </div>
       )}
       
-      {/* Invoice Detail Modal */}
       {selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full">

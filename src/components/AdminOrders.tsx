@@ -1,8 +1,7 @@
-
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, Check, X, Clock, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 import { dbService, Booking } from '@/services/database';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 
@@ -11,10 +10,9 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const { toast } = useToast();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Verify user is an admin and load orders
     if (user?.role === 'admin') {
       const allBookings = dbService.getBookings();
       setOrders(allBookings);
@@ -37,15 +35,12 @@ const AdminOrders = () => {
     const updatedBooking = dbService.updateBookingStatus(id, newStatus);
     
     if (updatedBooking) {
-      // Update local state
       setOrders(orders.map(order => 
         order.id === id ? updatedBooking : order
       ));
       
-      // Close modal
       setSelectedOrder(null);
       
-      // Show success toast
       toast({
         title: "Status updated",
         description: `Order #${id} has been marked as ${newStatus}.`,
@@ -53,7 +48,6 @@ const AdminOrders = () => {
     }
   };
 
-  // Helper for status badge styling
   const getStatusBadgeClasses = (status: Booking['status']) => {
     switch (status) {
       case 'pending':
@@ -89,7 +83,6 @@ const AdminOrders = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-playfair font-semibold">Client Bookings</h2>
         
-        {/* Filter buttons */}
         <div className="flex flex-wrap space-x-2">
           <button
             onClick={() => setFilterStatus('all')}
@@ -134,7 +127,6 @@ const AdminOrders = () => {
         </div>
       </div>
       
-      {/* Orders Table */}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -188,7 +180,6 @@ const AdminOrders = () => {
         </Table>
       </div>
 
-      {/* Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -240,7 +231,6 @@ const AdminOrders = () => {
                 )}
               </div>
               
-              {/* Action buttons */}
               <div className="border-t pt-4 flex flex-wrap gap-2">
                 {selectedOrder.status === 'pending' && (
                   <>

@@ -1,13 +1,13 @@
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Gallery, GalleryImage, dbService } from '@/services/database';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Image, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const ClientGallery = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const { toast } = useToast();
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);

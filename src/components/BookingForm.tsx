@@ -1,9 +1,8 @@
-
-import { useState, useContext, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 import { dbService, Booking } from '@/services/database';
 
 // Types for form data
@@ -35,7 +34,7 @@ const BookingForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   // Pre-fill form with user data if available
   useEffect(() => {
