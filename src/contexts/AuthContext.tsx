@@ -1,4 +1,3 @@
-
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/services/supabaseClient';
@@ -165,13 +164,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
+        const now = new Date().toISOString();
+        
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert([{
             id: data.user.id,
             email: data.user.email,
             name,
-            role: 'client'
+            role: 'client',
+            phone: null,
+            created_at: now,
+            updated_at: now
           }]);
           
         if (profileError) {
