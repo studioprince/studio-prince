@@ -1,7 +1,6 @@
 
-import { useState, useContext } from 'react';
-import { AuthContext } from '@/App';
-import { dbService } from '@/services/database';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 type RegisterFormProps = {
   onSuccess: () => void;
@@ -16,7 +15,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useContext(AuthContext);
+  const { register } = useAuth();
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -42,15 +41,15 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     
     setIsLoading(true);
     
-    // Register user using our database service
-    const user = dbService.registerUser(name, email, password);
-    
-    if (user) {
-      login(user);
-      onSuccess();
+    try {
+      const success = await register(email, password, name);
+      
+      if (success) {
+        onSuccess();
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

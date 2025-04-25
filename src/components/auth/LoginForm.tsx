@@ -1,9 +1,7 @@
 
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AuthContext } from '@/App';
-import { dbService } from '@/services/database';
-import { toast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
 
 type LoginFormProps = {
   onSuccess: () => void;
@@ -14,43 +12,34 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Login user using our database service
-      const user = dbService.loginUser(email, password);
+      const success = await login(email, password);
       
-      if (user) {
-        login(user);
+      if (success) {
         onSuccess();
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
   // Helper function to fill demo credentials
-  const fillDemoCredentials = (type: 'admin' | 'client' | 'new-admin') => {
-    if (type === 'admin') {
-      setEmail('aditya@admin.com');
-      setPassword('123');
-    } else if (type === 'new-admin') {
-      setEmail('admin@studio.com');
+  const fillDemoCredentials = (type: 'super_admin' | 'admin' | 'client') => {
+    if (type === 'super_admin') {
+      setEmail('koyande.om27@gmail.com');
+      setPassword('Swami@459');
+    } else if (type === 'admin') {
+      setEmail('StudioAdmin@gmail.com');
       setPassword('admin123');
     } else {
-      setEmail('omkar@client.com');
-      setPassword('123');
+      setEmail('client@example.com');
+      setPassword('client123');
     }
   };
 
@@ -121,12 +110,12 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
           <div className="bg-green-50 p-2 rounded-md border border-green-200 mb-2">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-semibold">NEW Admin Account:</p>
-                <p>admin@studio.com / admin123</p>
+                <p className="font-semibold">Super Admin:</p>
+                <p>koyande.om27@gmail.com / Swami@459</p>
               </div>
               <button 
                 type="button"
-                onClick={() => fillDemoCredentials('new-admin')}
+                onClick={() => fillDemoCredentials('super_admin')}
                 className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
               >
                 Use This
@@ -134,7 +123,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
             </div>
           </div>
           <div className="flex justify-between">
-            <p>Original Admin: aditya@admin.com / 123</p>
+            <p>Admin: StudioAdmin@gmail.com / admin123</p>
             <button 
               type="button"
               onClick={() => fillDemoCredentials('admin')}
@@ -144,7 +133,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
             </button>
           </div>
           <div className="flex justify-between">
-            <p>Client: omkar@client.com / 123</p>
+            <p>Client: client@example.com / client123</p>
             <button 
               type="button"
               onClick={() => fillDemoCredentials('client')}
@@ -160,4 +149,3 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 };
 
 export default LoginForm;
-

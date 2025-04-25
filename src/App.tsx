@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,65 +13,41 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
-import { useState, createContext, useEffect } from "react";
-
-// Create auth context to manage user state across the app
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'client' | 'admin';
-  phone?: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  login: (user: User) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  login: () => {},
-  logout: () => {},
-  isAuthenticated: false,
-});
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
+// ProtectedRoute component
+const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React.ReactNode, requiredRole?: 'super_admin' | 'admin' | 'client' }) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
+  }
+  
+  // Check role permissions
+  if (
+    (requiredRole === 'super_admin' && user?.role !== 'super_admin') ||
+    (requiredRole === 'admin' && user?.role !== 'super_admin' && user?.role !== 'admin')
+  ) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const App = () => {
-  // Initialize user state from localStorage if available
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('studioUser');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-
-  // Update localStorage whenever user state changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('studioUser', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('studioUser');
-    }
-  }, [user]);
-
-  const login = (userData: User) => {
-    setUser(userData);
-  };
-
-  const logout = () => {
-    setUser(null);
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ 
-        user, 
-        login, 
-        logout, 
-        isAuthenticated: !!user 
-      }}>
+      <AuthProvider>
         <BrowserRouter>
           <Toaster />
           <Sonner />
@@ -81,17 +58,21 @@ const App = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/booking" element={
-              user ? <Booking /> : <Navigate to="/auth" state={{ from: 'booking' }} />
+              <ProtectedRoute>
+                <Booking />
+              </ProtectedRoute>
             } />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={
-              user ? <Dashboard /> : <Navigate to="/auth" state={{ from: 'dashboard' }} />
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Footer />
         </BrowserRouter>
-      </AuthContext.Provider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

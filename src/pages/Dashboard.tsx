@@ -1,19 +1,20 @@
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, Users, User } from 'lucide-react';
 import AdminOrders from '@/components/AdminOrders';
 import ClientOrders from '@/components/ClientOrders';
 import ClientGallery from '@/components/gallery/ClientGallery';
 import AdminGallery from '@/components/gallery/AdminGallery';
 import InvoiceList from '@/components/invoices/InvoiceList';
+import UserManagement from '@/components/admin/UserManagement';
 import { useToast } from '@/hooks/use-toast';
-import { AuthContext } from '@/App';
-import { dbService } from '@/services/database';
+import { supabase } from '@/services/supabaseClient';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  const { user, login, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -47,36 +48,40 @@ const Dashboard = () => {
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  const handleProfileUpdate = () => {
+  const handleProfileUpdate = async () => {
     if (!user) return;
 
-    const updatedUser = {
-      ...user,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone
-    };
-
-    // Save to database
-    dbService.saveUser(updatedUser);
-    
-    // Update context
-    login(updatedUser);
-    
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully."
-    });
+    try {
+      // Update user profile in Supabase
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          name: formData.name,
+          phone: formData.phone
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully."
+      });
+      
+      // Refresh page to update context
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        title: "Error updating profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +100,10 @@ const Dashboard = () => {
     setFormData(prev => ({ ...prev, phone: value }));
   };
 
+  // Determine which dashboard to show based on user role
+  const isSuperAdmin = user.role === 'super_admin';
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+
   return (
     <main className="pt-24 pb-20">
       <div className="container-custom">
@@ -107,7 +116,7 @@ const Dashboard = () => {
               <h1 className="text-2xl font-playfair font-semibold">{user.name}</h1>
               <p className="text-gray-600">{user.email}</p>
               <p className="text-sm bg-gray-200 rounded px-2 py-0.5 inline-block mt-1">
-                {user.role === 'admin' ? 'Administrator' : 'Client'}
+                {user.role === 'super_admin' ? 'Super Admin' : (user.role === 'admin' ? 'Administrator' : 'Client')}
               </p>
               {user.phone && <p className="text-gray-600 text-sm mt-1">{user.phone}</p>}
             </div>
@@ -125,7 +134,30 @@ const Dashboard = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {user.role === 'admin' ? (
+          {isSuperAdmin ? (
+            <div className="p-6">
+              <Tabs defaultValue="users">
+                <TabsList className="mb-6">
+                  <TabsTrigger value="users">User Management</TabsTrigger>
+                  <TabsTrigger value="orders">Orders</TabsTrigger>
+                  <TabsTrigger value="galleries">Galleries</TabsTrigger>
+                  <TabsTrigger value="invoices">Invoices</TabsTrigger>
+                </TabsList>
+                <TabsContent value="users">
+                  <UserManagement />
+                </TabsContent>
+                <TabsContent value="orders">
+                  <AdminOrders />
+                </TabsContent>
+                <TabsContent value="galleries">
+                  <AdminGallery />
+                </TabsContent>
+                <TabsContent value="invoices">
+                  <InvoiceList />
+                </TabsContent>
+              </Tabs>
+            </div>
+          ) : isAdmin ? (
             <div className="p-6">
               <Tabs defaultValue="orders">
                 <TabsList className="mb-6">
@@ -188,8 +220,8 @@ const Dashboard = () => {
                           id="email"
                           type="email"
                           value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                          readOnly
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
                         />
                       </div>
                       

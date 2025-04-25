@@ -1,16 +1,16 @@
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { Camera } from 'lucide-react';
-import { AuthContext } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, isLoading } = useAuth();
   
   const message = location.state?.message || null;
   const from = location.state?.from || 'dashboard'; // Default redirect to dashboard
@@ -19,15 +19,26 @@ const Auth = () => {
     window.scrollTo(0, 0);
     
     // If user is already authenticated, redirect them
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoading) {
       navigate(`/${from}`);
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, navigate, from, isLoading]);
 
   const handleAuthSuccess = () => {
     // Redirect based on where the user came from
     navigate(`/${from}`);
   };
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen pt-24 pb-12 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen pt-24 pb-12">
