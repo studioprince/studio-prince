@@ -1,34 +1,26 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Edit, Trash, User as UserIcon } from 'lucide-react';
 import { supabase } from '@/services/supabaseClient';
-import { useAuth, User } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
 
-// Extended User type to match what we need in the component
-interface ExtendedUser extends User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'admin' | 'client';
-  phone?: string;
-}
+type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<ExtendedUser[]>([]);
-  const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     email: '',
-    role: 'client' as 'super_admin' | 'admin' | 'client'
+    role: 'client' as UserProfile['role']
   });
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
-    // Load users from Supabase
     const fetchUsers = async () => {
       if (!currentUser || currentUser.role !== 'super_admin') {
         toast({
@@ -49,7 +41,7 @@ const UserManagement = () => {
         }
         
         if (data) {
-          setUsers(data as ExtendedUser[]);
+          setUsers(data as UserProfile[]);
         }
       } catch (error: any) {
         toast({
@@ -63,7 +55,7 @@ const UserManagement = () => {
     fetchUsers();
   }, [currentUser, toast]);
 
-  const handleEditUser = (user: ExtendedUser) => {
+  const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
     setFormData({
       id: user.id,
@@ -77,10 +69,9 @@ const UserManagement = () => {
     setEditingUser(null);
   };
 
-  const handleDeleteUser = async (user: ExtendedUser) => {
+  const handleDeleteUser = async (user: UserProfile) => {
     if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
       try {
-        // First delete from user_profiles
         const { error: profileError } = await supabase
           .from('user_profiles')
           .delete()
@@ -88,9 +79,6 @@ const UserManagement = () => {
           
         if (profileError) throw profileError;
         
-        // Then delete from auth.users (requires admin privileges)
-        // Note: In a real app, you might want to use Supabase Edge Functions for this
-        // as it requires admin privileges that should not be exposed in client code
         const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
         
         if (authError) throw authError;
@@ -120,7 +108,7 @@ const UserManagement = () => {
     e.preventDefault();
     
     try {
-      const updatedUser: ExtendedUser = {
+      const updatedUser: UserProfile = {
         id: formData.id,
         name: formData.name,
         email: formData.email,
@@ -191,7 +179,6 @@ const UserManagement = () => {
         <h2 className="text-xl font-playfair font-semibold">User Management</h2>
       </div>
 
-      {/* Users Table */}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

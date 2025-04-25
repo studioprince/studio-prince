@@ -1,15 +1,18 @@
-
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { supabase, UserRole } from '@/services/supabaseClient';
+import { supabase } from '@/services/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { Database } from '@/integrations/supabase/types';
+
+type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+type UserRole = UserProfile['role'];
 
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
   role: UserRole;
-  phone?: string;
+  phone: string | null;
 }
 
 interface AuthContextType {
@@ -34,100 +37,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Check for existing session on load
+  const fetchUserProfile = async (userId: string) => {
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+    
+    return profile;
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
+    const initAuth = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('Session fetch error:', error);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (data.session?.user) {
-          try {
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', data.session.user.id)
-              .single();
-            
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id);
+          
+          if (profile) {
             setUser({
-              id: data.session.user.id,
-              email: data.session.user.email || '',
-              name: profile?.name || data.session.user.email?.split('@')[0] || 'User',
-              role: profile?.role || 'client',
-              phone: profile?.phone || ''
+              id: session.user.id,
+              email: profile.email,
+              name: profile.name,
+              role: profile.role,
+              phone: profile.phone
             });
-          } catch (profileError) {
-            console.error('Profile fetch error:', profileError);
           }
         }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        console.error('Error initializing auth:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchUser();
-    
-    // Setup auth state listener with better error handling
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    try {
-      const { data, error } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (error) {
-            console.error('Auth state change error:', error);
-            return;
-          }
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const profile = await fetchUserProfile(session.user.id);
           
-          try {
-            if (event === 'SIGNED_IN' && session?.user) {
-              const { data: profile, error: profileError } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-                
-              if (profileError) {
-                console.error('Profile fetch error in auth change:', profileError);
-              }
-                
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                name: profile?.name || session.user.email?.split('@')[0] || 'User',
-                role: profile?.role || 'client',
-                phone: profile?.phone || ''
-              });
-            } else if (event === 'SIGNED_OUT') {
-              setUser(null);
-            }
-          } catch (handlerError) {
-            console.error('Error in auth state change handler:', handlerError);
+          if (profile) {
+            setUser({
+              id: session.user.id,
+              email: profile.email,
+              name: profile.name,
+              role: profile.role,
+              phone: profile.phone
+            });
           }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
         }
-      );
-      
-      if (subscription) {
-        subscription = data.subscription;
       }
-    } catch (setupError) {
-      console.error('Error setting up auth state change listener:', setupError);
-      setIsLoading(false);
-    }
-    
+    );
+
     return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
-  
+
   const login = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -140,26 +116,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+        const profile = await fetchUserProfile(data.user.id);
+        
+        if (profile) {
+          setUser({
+            id: data.user.id,
+            email: data.user.email || '',
+            name: profile.name || data.user.email?.split('@')[0] || 'User',
+            role: profile.role || 'client',
+            phone: profile.phone || ''
+          });
           
-        setUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          name: profile?.name || data.user.email?.split('@')[0] || 'User',
-          role: profile?.role || 'client',
-          phone: profile?.phone || ''
-        });
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${profile?.name || data.user.email?.split('@')[0] || 'User'}!`
-        });
-        
-        return true;
+          toast({
+            title: "Login successful",
+            description: `Welcome back, ${profile.name || data.user.email?.split('@')[0] || 'User'}!`
+          });
+          
+          return true;
+        }
       }
       
       return false;
@@ -190,7 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
-        // Create profile entry with default client role
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert([{

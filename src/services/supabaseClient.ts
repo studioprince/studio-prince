@@ -1,11 +1,11 @@
 
 import { supabase as supabaseIntegration } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-// Use the already configured Supabase client from the integration
 export const supabase = supabaseIntegration;
 
 // User roles
-export type UserRole = 'super_admin' | 'admin' | 'client';
+export type UserRole = Database['public']['Tables']['user_profiles']['Row']['role'];
 
 // Helper functions for authentication
 export const getCurrentUser = async () => {
@@ -13,19 +13,20 @@ export const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // Get the user's profile including role
       const { data } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
         .single();
         
-      return { 
-        ...user,
-        role: data?.role || 'client',
-        name: data?.name || user.email?.split('@')[0] || 'User',
-        phone: data?.phone || ''
-      };
+      if (data) {
+        return { 
+          ...user,
+          role: data.role,
+          name: data.name || user.email?.split('@')[0] || 'User',
+          phone: data.phone || ''
+        };
+      }
     }
   } catch (error) {
     console.error('Error fetching user:', error);
