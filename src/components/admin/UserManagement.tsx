@@ -1,27 +1,69 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { dbService, User } from '@/services/database';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Edit, Trash, User as UserIcon } from 'lucide-react';
+import { supabase } from '@/services/supabaseClient';
+import { useAuth, User } from '@/contexts/AuthContext';
+
+// Extended User type to match what we need in the component
+interface ExtendedUser extends User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'admin' | 'client';
+  phone?: string;
+}
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<ExtendedUser[]>([]);
+  const [editingUser, setEditingUser] = useState<ExtendedUser | null>(null);
   const [formData, setFormData] = useState({
     id: '',
     name: '',
     email: '',
-    role: 'client'
+    role: 'client' as 'super_admin' | 'admin' | 'client'
   });
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   useEffect(() => {
-    // Load users from database
-    const allUsers = dbService.getUsers();
-    setUsers(allUsers);
-  }, []);
+    // Load users from Supabase
+    const fetchUsers = async () => {
+      if (!currentUser || currentUser.role !== 'super_admin') {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to view users",
+          variant: "destructive"
+        });
+        return;
+      }
 
-  const handleEditUser = (user: User) => {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*');
+          
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setUsers(data as ExtendedUser[]);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error loading users",
+          description: error.message || "Could not load users",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    fetchUsers();
+  }, [currentUser, toast]);
+
+  const handleEditUser = (user: ExtendedUser) => {
     setEditingUser(user);
     setFormData({
       id: user.id,
@@ -35,14 +77,35 @@ const UserManagement = () => {
     setEditingUser(null);
   };
 
-  const handleDeleteUser = (user: User) => {
+  const handleDeleteUser = async (user: ExtendedUser) => {
     if (confirm(`Are you sure you want to delete user "${user.name}"?`)) {
-      const deleted = dbService.deleteUser(user.id);
-      if (deleted) {
+      try {
+        // First delete from user_profiles
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .delete()
+          .eq('id', user.id);
+          
+        if (profileError) throw profileError;
+        
+        // Then delete from auth.users (requires admin privileges)
+        // Note: In a real app, you might want to use Supabase Edge Functions for this
+        // as it requires admin privileges that should not be exposed in client code
+        const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+        
+        if (authError) throw authError;
+        
         setUsers(users.filter(u => u.id !== user.id));
+        
         toast({
           title: "User deleted",
           description: `"${user.name}" has been deleted successfully.`
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error deleting user",
+          description: error.message || "Could not delete user",
+          variant: "destructive"
         });
       }
     }
@@ -53,43 +116,73 @@ const UserManagement = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleUpdateUser = (e: React.FormEvent) => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const updatedUser: User = {
-      id: formData.id,
-      name: formData.name,
-      email: formData.email,
-      role: formData.role
-    };
-
-    const savedUser = dbService.saveUser(updatedUser);
-
-    setUsers(users.map(user =>
-      user.id === savedUser.id ? savedUser : user
-    ));
-
-    setEditingUser(null);
-
-    toast({
-      title: "User updated",
-      description: `"${savedUser.name}" has been updated successfully.`
-    });
+    
+    try {
+      const updatedUser: ExtendedUser = {
+        id: formData.id,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role
+      };
+      
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          name: formData.name,
+          role: formData.role
+        })
+        .eq('id', formData.id);
+        
+      if (error) throw error;
+      
+      setUsers(users.map(user =>
+        user.id === updatedUser.id ? updatedUser : user
+      ));
+      
+      setEditingUser(null);
+      
+      toast({
+        title: "User updated",
+        description: `"${updatedUser.name}" has been updated successfully.`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating user",
+        description: error.message || "Could not update user",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRoleChange = (userId: string, newRole: 'super_admin' | 'admin' | 'client') => {
-    setUsers(users.map(user => {
-      if (user.id === userId) {
-        const updatedUser = { ...user, role: newRole };
-        dbService.saveUser(updatedUser);
-        toast({
-          title: "Role updated",
-          description: `"${updatedUser.name}" role has been updated to ${newRole} successfully.`
-        });
-        return updatedUser;
-      }
-      return user;
-    }));
+  const handleRoleChange = async (userId: string, newRole: 'super_admin' | 'admin' | 'client') => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      
+      setUsers(users.map(user => {
+        if (user.id === userId) {
+          const updatedUser = { ...user, role: newRole };
+          toast({
+            title: "Role updated",
+            description: `"${updatedUser.name}" role has been updated to ${newRole} successfully.`
+          });
+          return updatedUser;
+        }
+        return user;
+      }));
+    } catch (error: any) {
+      toast({
+        title: "Error updating role",
+        description: error.message || "Could not update role",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

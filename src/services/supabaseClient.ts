@@ -1,9 +1,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Check for environment variables and provide fallbacks for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// Validate required configuration
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
+}
+
+// Create client even with empty strings to prevent immediate crashes, 
+// but operations will fail if credentials are missing
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // User roles
@@ -11,22 +19,31 @@ export type UserRole = 'super_admin' | 'admin' | 'client';
 
 // Helper functions for authentication
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase configuration missing. Cannot get current user.');
+    return null;
+  }
   
-  if (user) {
-    // Get the user's profile including role
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-      
-    return { 
-      ...user,
-      role: data?.role || 'client',
-      name: data?.name || user.email?.split('@')[0] || 'User',
-      phone: data?.phone || ''
-    };
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // Get the user's profile including role
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      return { 
+        ...user,
+        role: data?.role || 'client',
+        name: data?.name || user.email?.split('@')[0] || 'User',
+        phone: data?.phone || ''
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching user:', error);
   }
   
   return null;
@@ -34,13 +51,23 @@ export const getCurrentUser = async () => {
 
 // Get user role
 export const getUserRole = async (userId: string): Promise<UserRole> => {
-  const { data } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', userId)
-    .single();
-    
-  return data?.role as UserRole || 'client';
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase configuration missing. Cannot get user role.');
+    return 'client';
+  }
+  
+  try {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+      
+    return data?.role as UserRole || 'client';
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    return 'client';
+  }
 };
 
 // Check if user is super admin
@@ -57,6 +84,10 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
 
 // Create a new user via admin panel (for super admin use)
 export const createUser = async (email: string, password: string, role: UserRole, name: string) => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase configuration missing. Cannot create user.');
+  }
+  
   // Create the auth user
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
