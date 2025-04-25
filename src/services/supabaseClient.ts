@@ -15,27 +15,58 @@ let supabase;
 try {
   if (!supabaseUrl || !supabaseAnonKey) {
     // Create a dummy client that logs errors but doesn't crash the app
-    const dummyHandler = {
-      get: function(target, prop) {
-        // Return a function that logs the error for any method called
-        if (typeof target[prop] === 'object' && target[prop] !== null) {
-          return new Proxy({}, dummyHandler);
+    console.warn('Creating dummy Supabase client. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
+    
+    // More complete dummy client with auth methods
+    supabase = {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+        signUp: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+        signOut: async () => ({ data: null, error: null }),
+        onAuthStateChange: (callback) => {
+          console.warn('Auth state change listener added, but Supabase is not configured');
+          // Return a mock subscription with unsubscribe method
+          return {
+            data: {
+              subscription: {
+                unsubscribe: () => {}
+              }
+            }
+          };
+        },
+        admin: {
+          createUser: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } })
         }
-        
-        return function() {
-          console.error(`Supabase ${prop} operation failed: Missing configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.`);
-          return { data: null, error: new Error('Supabase not configured') };
+      },
+      from: (table) => {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: async () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } }),
+              data: null, error: { message: `Supabase not configured. Cannot query ${table}` }
+            }),
+            data: null, error: { message: `Supabase not configured. Cannot query ${table}` }
+          }),
+          insert: () => ({ data: null, error: { message: `Supabase not configured. Cannot insert into ${table}` } }),
+          update: () => ({ 
+            eq: () => ({ data: null, error: { message: `Supabase not configured. Cannot update ${table}` } }),
+            data: null, error: { message: `Supabase not configured. Cannot update ${table}` } 
+          }),
+          delete: () => ({ data: null, error: { message: `Supabase not configured. Cannot delete from ${table}` } }),
+          eq: () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } }),
+          single: async () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } })
         };
       }
     };
-    
-    supabase = new Proxy({}, dummyHandler);
   } else {
     // Create the real client when credentials are available
     supabase = createClient(supabaseUrl, supabaseAnonKey);
   }
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
+  
   // Provide a dummy client as fallback to prevent app crashes
   supabase = {
     auth: {
@@ -43,16 +74,40 @@ try {
       getSession: async () => ({ data: { session: null }, error: null }),
       signInWithPassword: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
       signUp: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
-      signOut: async () => ({}),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+      signOut: async () => ({ data: null, error: null }),
+      onAuthStateChange: (callback) => {
+        console.warn('Auth state change listener added, but Supabase is not configured');
+        return {
+          data: {
+            subscription: {
+              unsubscribe: () => {}
+            }
+          }
+        };
+      },
+      admin: {
+        createUser: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } })
+      }
     },
-    from: () => ({
-      select: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      delete: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      eq: () => ({ data: null, error: { message: 'Supabase not configured' } })
-    })
+    from: (table) => {
+      return {
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } }),
+            data: null, error: { message: `Supabase not configured. Cannot query ${table}` }
+          }),
+          data: null, error: { message: `Supabase not configured. Cannot query ${table}` }
+        }),
+        insert: () => ({ data: null, error: { message: `Supabase not configured. Cannot insert into ${table}` } }),
+        update: () => ({ 
+          eq: () => ({ data: null, error: { message: `Supabase not configured. Cannot update ${table}` } }),
+          data: null, error: { message: `Supabase not configured. Cannot update ${table}` } 
+        }),
+        delete: () => ({ data: null, error: { message: `Supabase not configured. Cannot delete from ${table}` } }),
+        eq: () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } }),
+        single: async () => ({ data: null, error: { message: `Supabase not configured. Cannot query ${table}` } })
+      };
+    }
   };
 }
 

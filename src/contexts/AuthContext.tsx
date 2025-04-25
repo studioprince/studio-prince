@@ -64,30 +64,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     fetchUser();
     
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: profile?.name || session.user.email?.split('@')[0] || 'User',
-          role: profile?.role || 'client',
-          phone: profile?.phone || ''
-        });
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-    };
+    // Listen for auth changes - with error handling
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        try {
+          if (event === 'SIGNED_IN' && session?.user) {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+              
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: profile?.name || session.user.email?.split('@')[0] || 'User',
+              role: profile?.role || 'client',
+              phone: profile?.phone || ''
+            });
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+          }
+        } catch (error) {
+          console.error('Error in auth state change handler:', error);
+        }
+      });
+      
+      return () => {
+        subscription?.unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up auth state change listener:', error);
+      setIsLoading(false);
+    }
   }, []);
   
   const login = async (email: string, password: string) => {
