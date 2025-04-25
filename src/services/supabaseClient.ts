@@ -10,20 +10,59 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
 }
 
-// Create client even with empty strings to prevent immediate crashes, 
-// but operations will fail if credentials are missing
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Modified client creation with proper checks
+let supabase;
+try {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // Create a dummy client that logs errors but doesn't crash the app
+    const dummyHandler = {
+      get: function(target, prop) {
+        // Return a function that logs the error for any method called
+        if (typeof target[prop] === 'object' && target[prop] !== null) {
+          return new Proxy({}, dummyHandler);
+        }
+        
+        return function() {
+          console.error(`Supabase ${prop} operation failed: Missing configuration. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.`);
+          return { data: null, error: new Error('Supabase not configured') };
+        };
+      }
+    };
+    
+    supabase = new Proxy({}, dummyHandler);
+  } else {
+    // Create the real client when credentials are available
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  // Provide a dummy client as fallback to prevent app crashes
+  supabase = {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+      signInWithPassword: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+      signUp: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+      signOut: async () => ({}),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+    },
+    from: () => ({
+      select: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      delete: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      eq: () => ({ data: null, error: { message: 'Supabase not configured' } })
+    })
+  };
+}
+
+export { supabase };
 
 // User roles
 export type UserRole = 'super_admin' | 'admin' | 'client';
 
 // Helper functions for authentication
 export const getCurrentUser = async () => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase configuration missing. Cannot get current user.');
-    return null;
-  }
-  
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -51,11 +90,6 @@ export const getCurrentUser = async () => {
 
 // Get user role
 export const getUserRole = async (userId: string): Promise<UserRole> => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase configuration missing. Cannot get user role.');
-    return 'client';
-  }
-  
   try {
     const { data } = await supabase
       .from('user_profiles')
@@ -84,34 +118,37 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
 
 // Create a new user via admin panel (for super admin use)
 export const createUser = async (email: string, password: string, role: UserRole, name: string) => {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase configuration missing. Cannot create user.');
-  }
-  
-  // Create the auth user
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true
-  });
-  
-  if (authError) throw authError;
-  
-  // Create the profile with role
-  if (authData.user) {
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .insert([
-        { 
-          id: authData.user.id,
-          email,
-          name,
-          role
-        }
-      ]);
+  try {
+    // Create the auth user
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true
+    });
+    
+    if (authError) throw authError;
+    
+    // Create the profile with role
+    if (authData?.user) {
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert([
+          { 
+            id: authData.user.id,
+            email,
+            name,
+            role
+          }
+        ]);
+        
+      if (profileError) throw profileError;
       
-    if (profileError) throw profileError;
+      return authData.user;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
   }
-  
-  return authData.user;
 };
