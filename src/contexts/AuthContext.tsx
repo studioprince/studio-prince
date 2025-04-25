@@ -1,3 +1,4 @@
+
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/services/supabaseClient';
@@ -124,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: data.user.email || '',
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             role: profile.role || 'client',
-            phone: profile.phone || ''
+            phone: profile.phone || null
           });
           
           toast({
@@ -181,7 +182,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: data.user.id,
           email: data.user.email || '',
           name,
-          role: 'client'
+          role: 'client',
+          phone: null
         });
         
         toast({

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -15,7 +16,10 @@ const UserManagement = () => {
     id: '',
     name: '',
     email: '',
-    role: 'client' as UserProfile['role']
+    role: 'client' as UserProfile['role'],
+    phone: null as string | null,
+    created_at: '',
+    updated_at: ''
   });
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -59,9 +63,12 @@ const UserManagement = () => {
     setEditingUser(user);
     setFormData({
       id: user.id,
-      name: user.name,
+      name: user.name || '',
       email: user.email,
-      role: user.role
+      role: user.role,
+      phone: user.phone,
+      created_at: user.created_at,
+      updated_at: user.updated_at
     });
   };
 
@@ -112,7 +119,10 @@ const UserManagement = () => {
         id: formData.id,
         name: formData.name,
         email: formData.email,
-        role: formData.role
+        role: formData.role,
+        phone: formData.phone,
+        created_at: formData.created_at,
+        updated_at: new Date().toISOString()
       };
       
       const { error } = await supabase
