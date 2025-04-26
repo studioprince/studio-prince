@@ -1,3 +1,4 @@
+
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/services/supabaseClient';
@@ -38,18 +39,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   
   const fetchUserProfile = async (userId: string) => {
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       
-    if (error) {
-      console.error('Error fetching profile:', error);
+      return profile;
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
       return null;
     }
-    
-    return profile;
   };
 
   useEffect(() => {
@@ -68,6 +74,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               role: profile.role,
               phone: profile.phone
             });
+          } else {
+            console.warn('User authenticated but profile not found');
+            setUser(null);
           }
         }
       } catch (error) {
@@ -79,20 +88,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     initAuth();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          
-          if (profile) {
-            setUser({
-              id: session.user.id,
-              email: profile.email,
-              name: profile.name,
-              role: profile.role,
-              phone: profile.phone
-            });
-          }
+          // Use setTimeout to prevent potential recursion
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(session.user.id);
+            
+            if (profile) {
+              setUser({
+                id: session.user.id,
+                email: profile.email,
+                name: profile.name,
+                role: profile.role,
+                phone: profile.phone
+              });
+            }
+          }, 0);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
@@ -121,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (profile) {
           setUser({
             id: data.user.id,
-            email: data.user.email || '',
+            email: profile.email,
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             role: profile.role || 'client',
             phone: profile.phone || null
@@ -133,6 +146,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
           
           return true;
+        } else {
+          toast({
+            title: "Profile not found",
+            description: "Your user account exists but profile is missing. Please contact support.",
+            variant: "destructive"
+          });
+          return false;
         }
       }
       
@@ -149,6 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const register = async (email: string, password: string, name: string) => {
     try {
+      // First create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -166,11 +187,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.user) {
         const now = new Date().toISOString();
         
+        // Then create the user profile
         const { error: profileError } = await supabase
           .from('user_profiles')
           .insert([{
             id: data.user.id,
-            email: data.user.email,
+            email: data.user.email!,
             name,
             role: 'client',
             phone: null,
@@ -179,12 +201,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }]);
           
         if (profileError) {
+          console.error("Profile creation error:", profileError);
+          
+          // Attempt to delete the auth user if profile creation fails
+          try {
+            await supabase.auth.admin.deleteUser(data.user.id);
+          } catch (deleteError) {
+            console.error("Failed to clean up auth user after profile creation failure:", deleteError);
+          }
+          
           throw profileError;
         }
         
         setUser({
           id: data.user.id,
-          email: data.user.email || '',
+          email: data.user.email!,
           name,
           role: 'client',
           phone: null

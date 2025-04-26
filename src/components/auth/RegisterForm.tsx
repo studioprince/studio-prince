@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 type RegisterFormProps = {
   onSuccess: () => void;
@@ -45,8 +46,18 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
       const success = await register(email, password, name);
       
       if (success) {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created and you're now logged in."
+        });
         onSuccess();
       }
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message || "Could not create your account",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

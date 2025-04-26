@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -12,12 +11,12 @@ type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 const UserManagement = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserProfile>({
     id: '',
-    name: '',
+    name: null,
     email: '',
-    role: 'client' as UserProfile['role'],
-    phone: null as string | null,
+    role: 'client',
+    phone: null,
     created_at: '',
     updated_at: ''
   });
@@ -61,15 +60,7 @@ const UserManagement = () => {
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
-    setFormData({
-      id: user.id,
-      name: user.name || '',
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      created_at: user.created_at,
-      updated_at: user.updated_at
-    });
+    setFormData({ ...user });
   };
 
   const handleCancelEdit = () => {
@@ -115,23 +106,20 @@ const UserManagement = () => {
     e.preventDefault();
     
     try {
+      const now = new Date().toISOString();
       const updatedUser: UserProfile = {
-        id: formData.id,
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        phone: formData.phone,
-        created_at: formData.created_at,
-        updated_at: new Date().toISOString()
+        ...formData,
+        updated_at: now
       };
       
       const { error } = await supabase
         .from('user_profiles')
         .update({
-          name: formData.name,
-          role: formData.role
+          name: updatedUser.name,
+          role: updatedUser.role,
+          updated_at: now
         })
-        .eq('id', formData.id);
+        .eq('id', updatedUser.id);
         
       if (error) throw error;
       
