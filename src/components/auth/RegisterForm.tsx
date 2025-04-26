@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/services/supabaseClient';
 
 type RegisterFormProps = {
   onSuccess: () => void;
@@ -43,14 +44,46 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      const success = await register(email, password, name);
+      // First, create the auth user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
       
-      if (success) {
+      if (error) throw error;
+      
+      if (data && data.user) {
+        const now = new Date().toISOString();
+        
+        // Create user profile manually
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: data.user.id,
+            email: email,
+            name: name,
+            role: 'client',
+            created_at: now,
+            updated_at: now
+          });
+          
+        if (profileError) {
+          console.error("Failed to create profile:", profileError);
+          toast({
+            title: "Profile creation failed",
+            description: "Your account was created but profile setup failed. Please contact support.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         toast({
           title: "Registration successful",
-          description: "Your account has been created and you're now logged in."
+          description: "Your account has been created. Please log in."
         });
-        onSuccess();
+        
+        // Switch to login instead of auto-login
+        switchToLogin();
       }
     } catch (error: any) {
       toast({
