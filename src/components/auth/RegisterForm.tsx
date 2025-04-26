@@ -44,45 +44,14 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      // First, create the auth user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      // Use the register function from AuthContext instead of direct implementation
+      const success = await register(email, password, name);
       
-      if (error) throw error;
-      
-      if (data && data.user) {
-        const now = new Date().toISOString();
-        
-        // Create user profile manually
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            name: name,
-            role: 'client',
-            created_at: now,
-            updated_at: now
-          });
-          
-        if (profileError) {
-          console.error("Failed to create profile:", profileError);
-          toast({
-            title: "Profile creation failed",
-            description: "Your account was created but profile setup failed. Please contact support.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
+      if (success) {
         toast({
           title: "Registration successful",
           description: "Your account has been created. Please log in."
         });
-        
-        // Switch to login instead of auto-login
         switchToLogin();
       }
     } catch (error: any) {
