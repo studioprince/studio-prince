@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-type RegisterFormProps = {
+type AdminRegisterFormProps = {
   onSuccess: () => void;
   switchToLogin: () => void;
 };
 
-const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
+const AdminRegisterForm = ({ onSuccess, switchToLogin }: AdminRegisterFormProps) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,19 +43,19 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      // Use the register function from AuthContext instead of direct implementation
-      const success = await register(email, password, name, 'client');
+      // Register as admin
+      const success = await register(email, password, name, 'admin');
       
       if (success) {
         toast({
-          title: "Registration successful",
-          description: "Your account has been created. Please log in."
+          title: "Admin registration successful",
+          description: "Your admin account has been created. Please log in."
         });
         switchToLogin();
       }
     } catch (error: any) {
       toast({
-        title: "Registration failed",
+        title: "Admin registration failed",
         description: error.message || "Could not create your account",
         variant: "destructive"
       });
@@ -68,7 +68,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="name" className="block text-sm font-medium mb-1">
-          Full Name
+          Admin Name
         </label>
         <input
           id="name"
@@ -77,7 +77,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
           value={name}
           onChange={e => setName(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="John Doe"
+          placeholder="Admin Name"
           disabled={isLoading}
         />
       </div>
@@ -93,7 +93,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="your@email.com"
+          placeholder="admin@example.com"
           disabled={isLoading}
         />
       </div>
@@ -136,14 +136,14 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full btn-primary"
+        className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
       >
-        {isLoading ? "Creating account..." : "Create account"}
+        {isLoading ? "Creating admin account..." : "Create admin account"}
       </button>
 
       <div className="text-center">
         <p className="text-sm text-gray-600">
-          Already have an account?{" "}
+          Already have an admin account?{" "}
           <button
             type="button"
             onClick={switchToLogin}
@@ -157,4 +157,4 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
   );
 };
 
-export default RegisterForm;
+export default AdminRegisterForm;

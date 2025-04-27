@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import LoginForm from '@/components/auth/LoginForm';
-import RegisterForm from '@/components/auth/RegisterForm';
-import { Camera } from 'lucide-react';
+import AdminLoginForm from '@/components/auth/AdminLoginForm';
+import AdminRegisterForm from '@/components/auth/AdminRegisterForm';
+import { Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-const Auth = () => {
+const AdminAuth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,12 +18,16 @@ const Auth = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // If user is already authenticated as a client, redirect them
-    if (isAuthenticated && !isLoading && user && user.role === 'client') {
+    // If user is already authenticated and is an admin, redirect them
+    if (isAuthenticated && !isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
       navigate(`/${from}`);
-    } else if (isAuthenticated && !isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
-      // If admin is trying to access client login, redirect to admin dashboard
-      navigate('/dashboard');
+    } else if (isAuthenticated && !isLoading && user) {
+      // If user is authenticated but not an admin, log them out and show message
+      navigate('/auth', { 
+        state: { 
+          message: "You need administrator privileges to access this area." 
+        } 
+      });
     }
   }, [isAuthenticated, navigate, from, isLoading, user]);
 
@@ -48,17 +52,17 @@ const Auth = () => {
       <div className="container-custom max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary rounded-full p-3">
-              <Camera className="h-6 w-6 text-white" />
+            <div className="bg-blue-600 rounded-full p-3">
+              <Users className="h-6 w-6 text-white" />
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl font-playfair font-semibold">
-            {isLogin ? "Client Login" : "Create Client Account"}
+            {isLogin ? "Admin Area" : "Create Admin Account"}
           </h1>
           <p className="text-gray-600 mt-2">
             {isLogin
-              ? "Sign in to access your Studio Prince client area"
-              : "Join Studio Prince to manage your photography sessions"}
+              ? "Sign in to access the Studio Prince admin dashboard"
+              : "Register as a new administrator for Studio Prince"}
           </p>
           {message && (
             <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-sm rounded-md">
@@ -69,12 +73,12 @@ const Auth = () => {
 
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-sm">
           {isLogin ? (
-            <LoginForm
+            <AdminLoginForm
               onSuccess={handleAuthSuccess}
               switchToRegister={() => setIsLogin(false)}
             />
           ) : (
-            <RegisterForm
+            <AdminRegisterForm
               onSuccess={handleAuthSuccess}
               switchToLogin={() => setIsLogin(true)}
             />
@@ -83,9 +87,9 @@ const Auth = () => {
 
         <div className="text-center mt-6">
           <p className="text-sm text-gray-500">
-            Are you an administrator?{' '}
-            <a href="/admin/auth" className="text-primary hover:underline font-medium">
-              Go to admin login
+            Looking to access the client area?{' '}
+            <a href="/auth" className="text-primary hover:underline font-medium">
+              Go to client login
             </a>
           </p>
         </div>
@@ -98,4 +102,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default AdminAuth;

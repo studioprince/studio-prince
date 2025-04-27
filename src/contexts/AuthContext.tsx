@@ -20,8 +20,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string, expectedRole?: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, role?: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, expectedRole?: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -132,6 +132,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await fetchUserProfile(data.user.id);
         
         if (profile) {
+          // Check if user role matches expected role
+          if (expectedRole && profile.role !== expectedRole) {
+            if (expectedRole === 'admin' && profile.role !== 'super_admin') {
+              await supabase.auth.signOut();
+              toast({
+                title: "Unauthorized",
+                description: "This login is for administrators only.",
+                variant: "destructive"
+              });
+              return false;
+            } else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
+              await supabase.auth.signOut();
+              toast({
+                title: "Admin detected",
+                description: "Please use the admin login page.",
+                variant: "destructive"
+              });
+              return false;
+            }
+          }
+          
           setUser({
             id: data.user.id,
             email: profile.email,
@@ -167,7 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string, role: string = 'client') => {
     try {
       // First create the auth user
       const { data, error } = await supabase.auth.signUp({
@@ -194,7 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             id: data.user.id,
             email: data.user.email!,
             name,
-            role: 'client',
+            role: role,
             phone: null,
             created_at: now,
             updated_at: now
@@ -213,17 +234,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw profileError;
         }
         
-        setUser({
-          id: data.user.id,
-          email: data.user.email!,
-          name,
-          role: 'client',
-          phone: null
-        });
-        
         toast({
           title: "Registration successful",
-          description: "Your account has been created."
+          description: `Your ${role} account has been created.`
         });
         
         return true;

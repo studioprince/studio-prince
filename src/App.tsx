@@ -10,6 +10,7 @@ import Portfolio from "./pages/Portfolio";
 import Contact from "./pages/Contact";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
+import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
 import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,10 @@ const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React
   }
   
   if (!isAuthenticated) {
+    // Redirect clients to client auth and admins to admin auth
+    if (requiredRole === 'admin' || requiredRole === 'super_admin') {
+      return <Navigate to="/admin/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
+    }
     return <Navigate to="/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
   }
   
@@ -63,6 +68,7 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/admin/auth" element={<AdminAuth />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />

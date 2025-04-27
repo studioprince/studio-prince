@@ -4,12 +4,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-type LoginFormProps = {
+type AdminLoginFormProps = {
   onSuccess: () => void;
   switchToRegister: () => void;
 };
 
-const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
+const AdminLoginForm = ({ onSuccess, switchToRegister }: AdminLoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +20,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password, 'client');
+      const success = await login(email, password, 'admin');
       
       if (success) {
         onSuccess();
@@ -28,7 +28,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
     } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "Invalid credentials",
+        description: error.message || "Invalid admin credentials",
         variant: "destructive"
       });
     } finally {
@@ -38,15 +38,15 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 
   // Helper function to fill demo credentials
   const fillDemoCredentials = () => {
-    setEmail('client@example.com');
-    setPassword('client123');
+    setEmail('StudioAdmin@gmail.com');
+    setPassword('admin123');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="email" className="block text-sm font-medium mb-1">
-          Email
+          Admin Email
         </label>
         <input
           id="email"
@@ -55,7 +55,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="your@email.com"
+          placeholder="admin@email.com"
           disabled={isLoading}
         />
       </div>
@@ -84,14 +84,14 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full btn-primary"
+        className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
       >
-        {isLoading ? "Signing in..." : "Client Sign In"}
+        {isLoading ? "Signing in..." : "Admin Sign In"}
       </button>
 
       <div className="text-center">
         <p className="text-sm text-gray-600">
-          Don't have an account?{" "}
+          Don't have an admin account?{" "}
           <button
             type="button"
             onClick={switchToRegister}
@@ -104,13 +104,13 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 
       {/* Demo account info */}
       <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
-        <p className="font-medium mb-1 text-center">Client Demo Account:</p>
+        <p className="font-medium mb-1 text-center">Admin Demo Account:</p>
         <div className="flex justify-between items-center">
-          <p>client@example.com / client123</p>
+          <p>StudioAdmin@gmail.com / admin123</p>
           <button 
             type="button"
             onClick={fillDemoCredentials}
-            className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+            className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
           >
             Use This
           </button>
@@ -120,4 +120,4 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   );
 };
 
-export default LoginForm;
+export default AdminLoginForm;
