@@ -17,18 +17,22 @@ const Auth = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    console.log("Auth page - Auth state:", { isAuthenticated, isLoading, userRole: user?.role });
     
     // If user is already authenticated as a client, redirect them
     if (isAuthenticated && !isLoading && user && user.role === 'client') {
+      console.log("Client authenticated, redirecting to:", from);
       navigate(`/${from}`);
     } else if (isAuthenticated && !isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
       // If admin is trying to access client login, redirect to admin dashboard
+      console.log("Admin detected in client login, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate, from, isLoading, user]);
 
   const handleAuthSuccess = () => {
     // Redirect based on where the user came from
+    console.log("Auth success, redirecting to:", from);
     navigate(`/${from}`);
   };
 

@@ -20,12 +20,17 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
     setIsLoading(true);
     
     try {
+      console.log("Client login attempt:", email);
       const success = await login(email, password, 'client');
       
       if (success) {
+        console.log("Client login successful");
         onSuccess();
+      } else {
+        console.log("Client login returned false");
       }
     } catch (error: any) {
+      console.error("Client login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid credentials",

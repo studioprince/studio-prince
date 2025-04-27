@@ -16,7 +16,14 @@ import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React.ReactNode, requiredRole?: 'super_admin' | 'admin' | 'client' }) => {
@@ -31,6 +38,7 @@ const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React
   }
   
   if (!isAuthenticated) {
+    console.log("Not authenticated, redirecting to auth page");
     // Redirect clients to client auth and admins to admin auth
     if (requiredRole === 'admin' || requiredRole === 'super_admin') {
       return <Navigate to="/admin/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
@@ -38,11 +46,14 @@ const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React
     return <Navigate to="/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
   }
   
+  console.log("Checking role access:", { userRole: user?.role, requiredRole });
+  
   // Check role permissions
   if (
     (requiredRole === 'super_admin' && user?.role !== 'super_admin') ||
     (requiredRole === 'admin' && user?.role !== 'super_admin' && user?.role !== 'admin')
   ) {
+    console.log("Insufficient permissions, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
   

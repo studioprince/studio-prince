@@ -61,12 +61,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log("Initializing auth state");
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          console.log("Found existing session, fetching profile");
           const profile = await fetchUserProfile(session.user.id);
           
           if (profile) {
+            console.log("Found profile:", profile);
             setUser({
               id: session.user.id,
               email: profile.email,
@@ -76,6 +79,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
           } else {
             console.warn('User authenticated but profile not found');
+            // Sign out if profile doesn't exist
+            await supabase.auth.signOut();
             setUser(null);
           }
         }
@@ -90,7 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         if (event === 'SIGNED_IN' && session?.user) {
           // Use setTimeout to prevent potential recursion
           setTimeout(async () => {
@@ -104,6 +110,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 role: profile.role,
                 phone: profile.phone
               });
+            } else {
+              console.warn('Signed in but profile not found');
+              // Sign out if profile doesn't exist 
+              await supabase.auth.signOut();
+              setUser(null);
             }
           }, 0);
         } else if (event === 'SIGNED_OUT') {
@@ -119,12 +130,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string, expectedRole?: string) => {
     try {
+      console.log(`Attempting login with email: ${email}, expected role: ${expectedRole || 'any'}`);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) {
+        console.error("Login error:", error);
         throw error;
       }
       
@@ -133,8 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (profile) {
           // Check if user role matches expected role
-          if (expectedRole && profile.role !== expectedRole) {
-            if (expectedRole === 'admin' && profile.role !== 'super_admin') {
+          if (expectedRole) {
+            if (expectedRole === 'admin' && profile.role !== 'admin' && profile.role !== 'super_admin') {
+              console.error("Role mismatch: Expected admin, got", profile.role);
               await supabase.auth.signOut();
               toast({
                 title: "Unauthorized",
@@ -143,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               });
               return false;
             } else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
+              console.error("Role mismatch: Expected client, got", profile.role);
               await supabase.auth.signOut();
               toast({
                 title: "Admin detected",
@@ -153,6 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           }
           
+          console.log("Login successful, setting user with role:", profile.role);
           setUser({
             id: data.user.id,
             email: profile.email,
@@ -168,17 +184,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           return true;
         } else {
+          console.error("Profile not found after login");
           toast({
             title: "Profile not found",
             description: "Your user account exists but profile is missing. Please contact support.",
             variant: "destructive"
           });
+          await supabase.auth.signOut();
           return false;
         }
       }
       
       return false;
     } catch (error: any) {
+      console.error("Login failed:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid credentials",
@@ -190,6 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const register = async (email: string, password: string, name: string, role: string = 'client') => {
     try {
+      console.log(`Attempting to register ${email} with role ${role}`);
       // First create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -202,6 +222,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) {
+        console.error("Registration auth error:", error);
         throw error;
       }
       
@@ -244,6 +265,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return false;
     } catch (error: any) {
+      console.error("Registration failed:", error);
       toast({
         title: "Registration failed",
         description: error.message || "Could not create account",
@@ -262,6 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "You have been successfully logged out."
       });
     } catch (error: any) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message || "Could not log out",

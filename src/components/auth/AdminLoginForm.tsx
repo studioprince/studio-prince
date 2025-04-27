@@ -20,12 +20,17 @@ const AdminLoginForm = ({ onSuccess, switchToRegister }: AdminLoginFormProps) =>
     setIsLoading(true);
     
     try {
+      console.log("Admin login attempt:", email);
       const success = await login(email, password, 'admin');
       
       if (success) {
+        console.log("Admin login successful");
         onSuccess();
+      } else {
+        console.log("Admin login returned false");
       }
     } catch (error: any) {
+      console.error("Admin login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid admin credentials",

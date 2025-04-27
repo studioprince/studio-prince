@@ -17,12 +17,15 @@ const AdminAuth = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    console.log("AdminAuth page - Auth state:", { isAuthenticated, isLoading, userRole: user?.role });
     
     // If user is already authenticated and is an admin, redirect them
     if (isAuthenticated && !isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
+      console.log("Admin authenticated, redirecting to:", from);
       navigate(`/${from}`);
-    } else if (isAuthenticated && !isLoading && user) {
+    } else if (isAuthenticated && !isLoading && user && user.role === 'client') {
       // If user is authenticated but not an admin, log them out and show message
+      console.log("Client detected in admin login, redirecting to client auth");
       navigate('/auth', { 
         state: { 
           message: "You need administrator privileges to access this area." 
@@ -33,6 +36,7 @@ const AdminAuth = () => {
 
   const handleAuthSuccess = () => {
     // Redirect based on where the user came from
+    console.log("Admin auth success, redirecting to:", from);
     navigate(`/${from}`);
   };
 
