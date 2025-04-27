@@ -12,6 +12,7 @@ import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
 import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
+import ProfileSetup from "./pages/ProfileSetup";
 import AboutUs from "./pages/AboutUs";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -57,6 +58,12 @@ const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React
     return <Navigate to="/dashboard" replace />;
   }
   
+  // Check if profile is completed, if not redirect to profile setup
+  if (!user?.profile_completed && window.location.pathname !== '/profile-setup') {
+    console.log("Profile not completed, redirecting to profile setup");
+    return <Navigate to="/profile-setup" replace />;
+  }
+  
   return <>{children}</>;
 };
 
@@ -73,6 +80,11 @@ const App = () => {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/profile-setup" element={
+              <ProtectedRoute>
+                <ProfileSetup />
+              </ProtectedRoute>
+            } />
             <Route path="/booking" element={
               <ProtectedRoute>
                 <Booking />

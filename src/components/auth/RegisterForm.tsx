@@ -49,9 +49,9 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
       if (success) {
         toast({
           title: "Registration successful",
-          description: "Your account has been created. Please log in."
+          description: "Your account has been created. Please complete your profile."
         });
-        switchToLogin();
+        onSuccess();
       }
     } catch (error: any) {
       toast({

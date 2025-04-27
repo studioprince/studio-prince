@@ -5,7 +5,7 @@ import type { Database } from '@/integrations/supabase/types';
 export const supabase = supabaseIntegration;
 
 // User roles
-export type UserRole = Database['public']['Tables']['user_profiles']['Row']['role'];
+export type UserRole = 'super_admin' | 'admin' | 'client';
 
 // Helper functions for authentication
 export const getCurrentUser = async () => {
@@ -24,7 +24,8 @@ export const getCurrentUser = async () => {
           ...user,
           role: data.role,
           name: data.name || user.email?.split('@')[0] || 'User',
-          phone: data.phone || ''
+          phone: data.phone || '',
+          profile_completed: data.profile_completed || false
         };
       }
     }
@@ -51,7 +52,7 @@ export const getUserRole = async (userId: string): Promise<UserRole> => {
   }
 };
 
-// Check if user is super admin using our new function
+// Check if user is super admin using security definer function
 export const isSuperAdmin = async (userId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.rpc('is_super_admin', {
@@ -72,8 +73,21 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
-  const role = await getUserRole(userId);
-  return role === 'super_admin' || role === 'admin';
+  try {
+    const { data, error } = await supabase.rpc('is_admin', {
+      uid: userId
+    });
+    
+    if (error) {
+      console.error('Error checking if user is admin:', error);
+      return false;
+    }
+    
+    return data || false;
+  } catch (error) {
+    console.error('Error checking if user is admin:', error);
+    return false;
+  }
 };
 
 // Create a new user via admin panel (for super admin use)

@@ -49,9 +49,9 @@ const AdminRegisterForm = ({ onSuccess, switchToLogin }: AdminRegisterFormProps)
       if (success) {
         toast({
           title: "Admin registration successful",
-          description: "Your admin account has been created. Please log in."
+          description: "Your admin account has been created. Please complete your profile."
         });
-        switchToLogin();
+        onSuccess();
       }
     } catch (error: any) {
       toast({
