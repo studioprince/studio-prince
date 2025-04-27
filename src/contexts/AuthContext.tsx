@@ -3,8 +3,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/services/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
+import { UserProfile } from '@/services/supabaseClient';
 
-type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 type UserRole = 'super_admin' | 'admin' | 'client';
 
 export interface User {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log("Profile fetched successfully:", profile);
-      return profile;
+      return profile as UserProfile;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       return null;
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     name: profile.name,
                     role: profile.role as UserRole,
                     phone: profile.phone,
-                    profile_completed: profile.profile_completed ?? false
+                    profile_completed: (profile as any).profile_completed ?? false
                   });
                 } else {
                   console.warn('User authenticated but profile not found');
@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               name: profile.name,
               role: profile.role as UserRole,
               phone: profile.phone,
-              profile_completed: profile.profile_completed ?? false
+              profile_completed: (profile as any).profile_completed ?? false
             });
           } else {
             console.warn('User authenticated but profile not found');
@@ -184,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             role: profile.role as UserRole,
             phone: profile.phone || null,
-            profile_completed: profile.profile_completed ?? false
+            profile_completed: (profile as any).profile_completed ?? false
           });
           
           toast({

@@ -7,6 +7,11 @@ export const supabase = supabaseIntegration;
 // User roles
 export type UserRole = 'super_admin' | 'admin' | 'client';
 
+// Define our own UserProfile type that includes profile_completed
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row'] & {
+  profile_completed?: boolean;
+};
+
 // Helper functions for authentication
 export const getCurrentUser = async () => {
   try {
@@ -26,7 +31,7 @@ export const getCurrentUser = async () => {
           name: data.name || user.email?.split('@')[0] || 'User',
           phone: data.phone || '',
           // Use optional chaining to handle potential missing field
-          profile_completed: data.profile_completed ?? false
+          profile_completed: (data as any).profile_completed ?? false
         };
       }
     }
@@ -75,7 +80,7 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   try {
-    // Update to use is_admin function with correct parameter
+    // Call the correct function name 'is_admin' instead of 'is_super_admin'
     const { data, error } = await supabase.rpc('is_admin', {
       uid: userId
     });
