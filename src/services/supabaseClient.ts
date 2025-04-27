@@ -80,17 +80,18 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   try {
-    // Call the correct function name 'is_admin' instead of 'is_super_admin'
-    const { data, error } = await supabase.rpc('is_admin', {
-      uid: userId
-    });
+    // Since we don't have an 'is_admin' function, we'll use the 'is_super_admin' function
+    // but check for either 'admin' or 'super_admin' role
+    const { data: roleData } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
     
-    if (error) {
-      console.error('Error checking if user is admin:', error);
-      return false;
-    }
+    if (!roleData) return false;
     
-    return data || false;
+    // Check if the user role is either admin or super_admin
+    return roleData.role === 'admin' || roleData.role === 'super_admin';
   } catch (error) {
     console.error('Error checking if user is admin:', error);
     return false;
