@@ -1,4 +1,3 @@
-
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/services/supabaseClient';
@@ -84,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     name: profile.name,
                     role: profile.role as UserRole,
                     phone: profile.phone,
-                    profile_completed: profile.profile_completed || false
+                    profile_completed: profile.profile_completed ?? false
                   });
                 } else {
                   console.warn('User authenticated but profile not found');
@@ -117,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               name: profile.name,
               role: profile.role as UserRole,
               phone: profile.phone,
-              profile_completed: profile.profile_completed || false
+              profile_completed: profile.profile_completed ?? false
             });
           } else {
             console.warn('User authenticated but profile not found');
@@ -185,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             role: profile.role as UserRole,
             phone: profile.phone || null,
-            profile_completed: profile.profile_completed || false
+            profile_completed: profile.profile_completed ?? false
           });
           
           toast({

@@ -25,7 +25,8 @@ export const getCurrentUser = async () => {
           role: data.role,
           name: data.name || user.email?.split('@')[0] || 'User',
           phone: data.phone || '',
-          profile_completed: data.profile_completed || false
+          // Use optional chaining to handle potential missing field
+          profile_completed: data.profile_completed ?? false
         };
       }
     }
@@ -74,6 +75,7 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   try {
+    // Update to use is_admin function with correct parameter
     const { data, error } = await supabase.rpc('is_admin', {
       uid: userId
     });
