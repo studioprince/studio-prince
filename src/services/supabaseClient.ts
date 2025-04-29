@@ -12,26 +12,79 @@ export type UserProfile = Database['public']['Tables']['user_profiles']['Row'] &
   profile_completed?: boolean;
 };
 
+// Helper function to create a user profile if it doesn't exist
+export const ensureUserProfile = async (userId: string, email: string) => {
+  try {
+    // Check if profile exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+      
+    if (fetchError) {
+      console.error('Error checking for existing profile:', fetchError);
+      return null;
+    }
+    
+    // If profile exists, return it
+    if (existingProfile) {
+      return {
+        ...existingProfile,
+        profile_completed: (existingProfile as any).profile_completed ?? false
+      };
+    }
+    
+    // If profile doesn't exist, create it
+    console.log('Creating missing profile for user:', userId);
+    const { data: user } = await supabase.auth.getUser(userId);
+    const name = user?.user?.user_metadata?.name || email.split('@')[0] || 'User';
+    
+    const { data: newProfile, error: insertError } = await supabase
+      .from('user_profiles')
+      .insert([
+        {
+          id: userId,
+          email: email,
+          name: name,
+          role: 'client',
+          profile_completed: false
+        }
+      ])
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error('Error creating user profile:', insertError);
+      return null;
+    }
+    
+    return {
+      ...newProfile,
+      profile_completed: false
+    };
+  } catch (error) {
+    console.error('Error in ensureUserProfile:', error);
+    return null;
+  }
+};
+
 // Helper functions for authentication
 export const getCurrentUser = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Ensure user profile exists
+      const profile = await ensureUserProfile(user.id, user.email || '');
         
-      if (data) {
+      if (profile) {
         return { 
           ...user,
-          role: data.role,
-          name: data.name || user.email?.split('@')[0] || 'User',
-          phone: data.phone || '',
-          // Use optional chaining to handle potential missing field
-          profile_completed: (data as any).profile_completed ?? false
+          role: profile.role as UserRole,
+          name: profile.name || user.email?.split('@')[0] || 'User',
+          phone: profile.phone || '',
+          profile_completed: (profile as any).profile_completed ?? false
         };
       }
     }
@@ -86,7 +139,7 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
       .from('user_profiles')
       .select('role')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (!roleData) return false;
     
@@ -119,7 +172,8 @@ export const createUser = async (email: string, password: string, role: UserRole
             id: authData.user.id,
             email,
             name,
-            role
+            role,
+            profile_completed: false
           }
         ]);
         

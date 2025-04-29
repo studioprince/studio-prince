@@ -1,6 +1,7 @@
+
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/services/supabaseClient';
+import { supabase, ensureUserProfile } from '@/services/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { UserProfile } from '@/services/supabaseClient';
@@ -38,21 +39,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, email: string) => {
     try {
       console.log("Fetching profile for user ID:", userId);
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching profile:', error);
+      // Use the ensureUserProfile function to get or create a profile
+      const profile = await ensureUserProfile(userId, email);
+      
+      if (!profile) {
+        console.error('Failed to fetch or create profile');
         return null;
       }
       
-      console.log("Profile fetched successfully:", profile);
+      console.log("Profile fetched or created successfully:", profile);
       return profile as UserProfile;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -74,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (session?.user) {
               // We have a session, fetch the user profile
               setTimeout(async () => {
-                const profile = await fetchUserProfile(session.user.id);
+                const profile = await fetchUserProfile(session.user.id, session.user.email || '');
                 
                 if (profile) {
                   setUser({
@@ -86,10 +84,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     profile_completed: (profile as any).profile_completed ?? false
                   });
                 } else {
-                  console.warn('User authenticated but profile not found');
-                  // Sign out if profile doesn't exist
+                  console.warn('User authenticated but profile not found or created');
+                  // Sign out if profile doesn't exist and can't be created
                   await supabase.auth.signOut();
                   setUser(null);
+                  toast({
+                    title: "Profile error",
+                    description: "Could not retrieve or create your profile. Please try again.",
+                    variant: "destructive"
+                  });
                 }
                 setIsLoading(false);
               }, 0);
@@ -106,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (session?.user) {
           console.log("Found existing session, fetching profile");
-          const profile = await fetchUserProfile(session.user.id);
+          const profile = await fetchUserProfile(session.user.id, session.user.email || '');
           
           if (profile) {
             console.log("Found profile:", profile);
@@ -119,10 +122,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               profile_completed: (profile as any).profile_completed ?? false
             });
           } else {
-            console.warn('User authenticated but profile not found');
-            // Sign out if profile doesn't exist
+            console.warn('User authenticated but profile not found or created');
+            // Sign out if profile doesn't exist and can't be created
             await supabase.auth.signOut();
             setUser(null);
+            toast({
+              title: "Profile error",
+              description: "Could not retrieve or create your profile. Please try again.",
+              variant: "destructive"
+            });
           }
         }
         setIsLoading(false);
@@ -151,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
+        const profile = await fetchUserProfile(data.user.id, data.user.email || '');
         
         if (profile) {
           // Check if user role matches expected role
@@ -194,10 +202,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           return true;
         } else {
-          console.error("Profile not found after login");
+          console.error("Profile not found or couldn't be created after login");
           toast({
-            title: "Profile not found",
-            description: "Your user account exists but profile is missing. Please contact support.",
+            title: "Profile error",
+            description: "Could not retrieve or create your profile. Please try again.",
             variant: "destructive"
           });
           await supabase.auth.signOut();
@@ -242,6 +250,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
+        // Manually create profile in case trigger doesn't work
+        const profile = await fetchUserProfile(data.user.id, email);
+        
+        if (!profile) {
+          console.error("Failed to create profile during registration");
+          toast({
+            title: "Registration issue",
+            description: "Account created but profile setup failed. Please log in to continue.",
+            variant: "destructive"
+          });
+        }
+        
         toast({
           title: "Registration successful",
           description: `Your ${role} account has been created. Please complete your profile.`
