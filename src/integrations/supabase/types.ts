@@ -44,6 +44,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_user_profile: {
+        Args: {
+          uid: string
+          user_email: string
+          user_name: string
+          user_role?: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          role: string
+          updated_at: string
+        }
+      }
+      get_profile_by_id: {
+        Args: { uid: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          role: string
+          updated_at: string
+        }
+      }
+      get_user_role: {
+        Args: { uid: string }
+        Returns: string
+      }
+      is_admin: {
+        Args: { uid: string }
+        Returns: boolean
+      }
       is_super_admin: {
         Args: { uid: string }
         Returns: boolean
