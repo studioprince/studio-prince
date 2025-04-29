@@ -1,4 +1,3 @@
-
 import { supabase as supabaseIntegration } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -15,12 +14,11 @@ export type UserProfile = Database['public']['Tables']['user_profiles']['Row'] &
 // Helper function to create a user profile if it doesn't exist
 export const ensureUserProfile = async (userId: string, email: string) => {
   try {
-    // Check if profile exists
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    // Use direct query without RLS to check if profile exists
+    // This avoids the infinite recursion issue with policies
+    const { data: existingProfile, error: fetchError } = await supabase.rpc('get_profile_by_id', {
+      uid: userId
+    });
       
     if (fetchError) {
       console.error('Error checking for existing profile:', fetchError);
@@ -31,28 +29,22 @@ export const ensureUserProfile = async (userId: string, email: string) => {
     if (existingProfile) {
       return {
         ...existingProfile,
-        profile_completed: (existingProfile as any).profile_completed ?? false
+        profile_completed: existingProfile.profile_completed ?? false
       };
     }
     
-    // If profile doesn't exist, create it
+    // If profile doesn't exist, create it directly
     console.log('Creating missing profile for user:', userId);
     const { data: user } = await supabase.auth.getUser(userId);
     const name = user?.user?.user_metadata?.name || email.split('@')[0] || 'User';
     
-    const { data: newProfile, error: insertError } = await supabase
-      .from('user_profiles')
-      .insert([
-        {
-          id: userId,
-          email: email,
-          name: name,
-          role: 'client',
-          profile_completed: false
-        }
-      ])
-      .select()
-      .single();
+    // Insert via RPC to avoid RLS policies
+    const { data: newProfile, error: insertError } = await supabase.rpc('create_user_profile', {
+      uid: userId,
+      user_email: email,
+      user_name: name,
+      user_role: 'client'
+    });
       
     if (insertError) {
       console.error('Error creating user profile:', insertError);
@@ -60,7 +52,15 @@ export const ensureUserProfile = async (userId: string, email: string) => {
     }
     
     return {
-      ...newProfile,
+      ...(newProfile || {
+        id: userId,
+        email: email,
+        name: name,
+        role: 'client',
+        phone: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }),
       profile_completed: false
     };
   } catch (error) {
@@ -84,7 +84,7 @@ export const getCurrentUser = async () => {
           role: profile.role as UserRole,
           name: profile.name || user.email?.split('@')[0] || 'User',
           phone: profile.phone || '',
-          profile_completed: (profile as any).profile_completed ?? false
+          profile_completed: profile.profile_completed ?? false
         };
       }
     }
@@ -98,13 +98,12 @@ export const getCurrentUser = async () => {
 // Get user role
 export const getUserRole = async (userId: string): Promise<UserRole> => {
   try {
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
+    // Use RPC to get user role without RLS issues
+    const { data } = await supabase.rpc('get_user_role', {
+      uid: userId
+    });
       
-    return data?.role as UserRole || 'client';
+    return (data as UserRole) || 'client';
   } catch (error) {
     console.error('Error fetching user role:', error);
     return 'client';
@@ -133,18 +132,11 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   try {
-    // Since we don't have an 'is_admin' function, we'll use the 'is_super_admin' function
-    // but check for either 'admin' or 'super_admin' role
-    const { data: roleData } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
+    const { data: isUserAdmin } = await supabase.rpc('is_admin', {
+      uid: userId
+    });
     
-    if (!roleData) return false;
-    
-    // Check if the user role is either admin or super_admin
-    return roleData.role === 'admin' || roleData.role === 'super_admin';
+    return isUserAdmin || false;
   } catch (error) {
     console.error('Error checking if user is admin:', error);
     return false;
