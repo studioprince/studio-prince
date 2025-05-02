@@ -26,12 +26,12 @@ export const ensureUserProfile = async (userId: string, email: string) => {
       return null;
     }
     
-    // If profile exists, return it
+    // If profile exists, return it with profile_completed field
     if (existingProfile) {
       return {
         ...existingProfile,
-        profile_completed: existingProfile.profile_completed ?? false
-      };
+        profile_completed: false // Default to false if not present
+      } as UserProfile;
     }
     
     // If profile doesn't exist, create it via security definer function
@@ -53,9 +53,9 @@ export const ensureUserProfile = async (userId: string, email: string) => {
     }
     
     return {
-      ...(newProfile as UserProfile),
+      ...(newProfile as any),
       profile_completed: false
-    };
+    } as UserProfile;
   } catch (error) {
     console.error('Error in ensureUserProfile:', error);
     return null;
@@ -120,7 +120,7 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
       return false;
     }
     
-    return data || false;
+    return Boolean(data);
   } catch (error) {
     console.error('Error checking if user is super admin:', error);
     return false;
@@ -139,7 +139,7 @@ export const isAdmin = async (userId: string): Promise<boolean> => {
       return false;
     }
     
-    return isUserAdmin || false;
+    return Boolean(isUserAdmin);
   } catch (error) {
     console.error('Error checking if user is admin:', error);
     return false;
