@@ -8,9 +8,7 @@ export const supabase = supabaseIntegration;
 export type UserRole = 'super_admin' | 'admin' | 'client';
 
 // Define our own UserProfile type that includes profile_completed
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row'] & {
-  profile_completed?: boolean;
-};
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
 // Helper function to create a user profile if it doesn't exist
 export const ensureUserProfile = async (userId: string, email: string) => {
@@ -26,12 +24,9 @@ export const ensureUserProfile = async (userId: string, email: string) => {
       return null;
     }
     
-    // If profile exists, return it with profile_completed field
+    // If profile exists, return it
     if (existingProfile) {
-      return {
-        ...existingProfile,
-        profile_completed: false // Default to false if not present
-      } as UserProfile;
+      return existingProfile as UserProfile;
     }
     
     // If profile doesn't exist, create it via security definer function
@@ -52,10 +47,7 @@ export const ensureUserProfile = async (userId: string, email: string) => {
       return null;
     }
     
-    return {
-      ...(newProfile as any),
-      profile_completed: false
-    } as UserProfile;
+    return newProfile as UserProfile;
   } catch (error) {
     console.error('Error in ensureUserProfile:', error);
     return null;

@@ -16,6 +16,7 @@ export type Database = {
           id: string
           name: string | null
           phone: string | null
+          profile_completed: boolean | null
           role: string
           updated_at: string
         }
@@ -25,6 +26,7 @@ export type Database = {
           id: string
           name?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           role?: string
           updated_at?: string
         }
@@ -34,6 +36,7 @@ export type Database = {
           id?: string
           name?: string | null
           phone?: string | null
+          profile_completed?: boolean | null
           role?: string
           updated_at?: string
         }
@@ -57,6 +60,7 @@ export type Database = {
           id: string
           name: string | null
           phone: string | null
+          profile_completed: boolean | null
           role: string
           updated_at: string
         }
@@ -69,6 +73,7 @@ export type Database = {
           id: string
           name: string | null
           phone: string | null
+          profile_completed: boolean | null
           role: string
           updated_at: string
         }
