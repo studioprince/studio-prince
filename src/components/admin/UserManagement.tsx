@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -18,7 +19,8 @@ const UserManagement = () => {
     role: 'client',
     phone: null,
     created_at: '',
-    updated_at: ''
+    updated_at: '',
+    profile_completed: false // Added this field to fix the TypeScript error
   });
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
