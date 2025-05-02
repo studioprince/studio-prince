@@ -17,7 +17,7 @@ export const ensureUserProfile = async (userId: string, email: string) => {
   try {
     // Use security definer function to check if profile exists
     // This avoids the infinite recursion issue with policies
-    const { data: existingProfile, error: fetchError } = await supabase.rpc<UserProfile>('get_profile_by_id', {
+    const { data: existingProfile, error: fetchError } = await supabase.rpc('get_profile_by_id', {
       uid: userId
     });
       
@@ -40,7 +40,7 @@ export const ensureUserProfile = async (userId: string, email: string) => {
     const name = user?.user?.user_metadata?.name || email.split('@')[0] || 'User';
     
     // Insert via RPC to avoid RLS policy issues
-    const { data: newProfile, error: insertError } = await supabase.rpc<UserProfile>('create_user_profile', {
+    const { data: newProfile, error: insertError } = await supabase.rpc('create_user_profile', {
       uid: userId,
       user_email: email,
       user_name: name,
@@ -92,7 +92,7 @@ export const getCurrentUser = async () => {
 export const getUserRole = async (userId: string): Promise<UserRole> => {
   try {
     // Use security definer function to get user role
-    const { data, error } = await supabase.rpc<string>('get_user_role', {
+    const { data, error } = await supabase.rpc('get_user_role', {
       uid: userId
     });
       
@@ -111,7 +111,7 @@ export const getUserRole = async (userId: string): Promise<UserRole> => {
 // Check if user is super admin using security definer function
 export const isSuperAdmin = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc<boolean>('is_super_admin', {
+    const { data, error } = await supabase.rpc('is_super_admin', {
       uid: userId
     });
     
@@ -130,7 +130,7 @@ export const isSuperAdmin = async (userId: string): Promise<boolean> => {
 // Check if user is admin
 export const isAdmin = async (userId: string): Promise<boolean> => {
   try {
-    const { data: isUserAdmin, error } = await supabase.rpc<boolean>('is_admin', {
+    const { data: isUserAdmin, error } = await supabase.rpc('is_admin', {
       uid: userId
     });
     
