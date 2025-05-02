@@ -42,16 +42,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserProfile = async (userId: string, email: string) => {
     try {
       console.log("Fetching profile for user ID:", userId);
-      // Use the ensureUserProfile function to get or create a profile
-      const profile = await ensureUserProfile(userId, email);
       
-      if (!profile) {
-        console.error('Failed to fetch or create profile');
-        return null;
+      // First try to get the profile directly with RPC to avoid recursion issues
+      const { data: profileData, error: profileError } = await supabase.rpc('get_profile_by_id', {
+        uid: userId
+      });
+      
+      if (profileData) {
+        console.log("Profile found via RPC:", profileData);
+        return profileData as UserProfile;
       }
       
-      console.log("Profile fetched or created successfully:", profile);
-      return profile as UserProfile;
+      if (profileError) {
+        console.error("Error fetching profile with RPC:", profileError);
+      }
+      
+      // Fallback to direct query if RPC fails
+      const { data: directProfile, error: directError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (directProfile) {
+        console.log("Profile found via direct query:", directProfile);
+        return directProfile as UserProfile;
+      }
+      
+      if (directError) {
+        console.error("Error fetching profile with direct query:", directError);
+      }
+      
+      // Create profile if not found
+      console.log("Profile not found, creating new profile");
+      return await ensureUserProfile(userId, email);
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       return null;
@@ -81,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     name: profile.name,
                     role: profile.role as UserRole,
                     phone: profile.phone,
-                    profile_completed: (profile as any).profile_completed ?? false
+                    profile_completed: profile.profile_completed ?? false
                   });
                 } else {
                   console.warn('User authenticated but profile not found or created');
@@ -119,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               name: profile.name,
               role: profile.role as UserRole,
               phone: profile.phone,
-              profile_completed: (profile as any).profile_completed ?? false
+              profile_completed: profile.profile_completed ?? false
             });
           } else {
             console.warn('User authenticated but profile not found or created');
@@ -164,6 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (profile) {
           // Check if user role matches expected role
           if (expectedRole) {
+            // For admin login, check directly from the profile data
             if (expectedRole === 'admin' && profile.role !== 'admin' && profile.role !== 'super_admin') {
               console.error("Role mismatch: Expected admin, got", profile.role);
               await supabase.auth.signOut();
@@ -173,7 +198,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 variant: "destructive"
               });
               return false;
-            } else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
+            } 
+            // For client login, check directly from the profile data
+            else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
               console.error("Role mismatch: Expected client, got", profile.role);
               await supabase.auth.signOut();
               toast({
@@ -192,7 +219,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             role: profile.role as UserRole,
             phone: profile.phone || null,
-            profile_completed: (profile as any).profile_completed ?? false
+            profile_completed: profile.profile_completed ?? false
           });
           
           toast({
