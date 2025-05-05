@@ -27,6 +27,8 @@ const ProfileSetup = () => {
   }, [user]);
 
   useEffect(() => {
+    console.log("ProfileSetup - Auth state:", { isLoading, user });
+    
     // If user isn't logged in, redirect to auth
     if (!isLoading && !user) {
       navigate('/auth');
@@ -51,7 +53,14 @@ const ProfileSetup = () => {
         return;
       }
 
-      // Update user profile
+      console.log("Updating user profile:", {
+        id: user.id,
+        name: formData.name,
+        phone: formData.phone
+      });
+
+      // Update user profile - for this specific operation we use the direct update 
+      // since our RLS policy allows users to update their own profiles
       const { error } = await supabase
         .from('user_profiles')
         .update({

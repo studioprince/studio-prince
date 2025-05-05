@@ -10,23 +10,94 @@ CREATE TABLE user_profiles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
+-- Add profile_completed column
+ALTER TABLE user_profiles 
+ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT false;
+
 -- Set up RLS (Row Level Security)
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
+-- Create security definer functions to safely check roles
+CREATE OR REPLACE FUNCTION public.get_user_role_safe(uid uuid)
+RETURNS TEXT
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM user_profiles WHERE id = uid;
+$$;
+
+-- Create RPC function to get user role
+CREATE OR REPLACE FUNCTION get_user_role(uid uuid)
+RETURNS TEXT
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM user_profiles WHERE id = uid;
+$$;
+
+-- Create RPC function to get profile by ID
+CREATE OR REPLACE FUNCTION get_profile_by_id(uid uuid)
+RETURNS user_profiles
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT * FROM public.user_profiles WHERE id = uid;
+$$;
+
+-- Create user profile helper function
+CREATE OR REPLACE FUNCTION create_user_profile(uid uuid, user_email text, user_name text, user_role text DEFAULT 'client'::text)
+RETURNS user_profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, name, role, profile_completed)
+  VALUES (uid, user_email, user_name, user_role, false)
+  ON CONFLICT (id) DO UPDATE
+  SET 
+    email = EXCLUDED.email,
+    name = EXCLUDED.name,
+    updated_at = now()
+  RETURNING *;
+  
+  RETURN (SELECT * FROM public.user_profiles WHERE id = uid);
+END;
+$$;
+
+-- Function to check if user is admin
+CREATE OR REPLACE FUNCTION is_admin(uid uuid)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role IN ('admin', 'super_admin') FROM public.user_profiles WHERE id = uid;
+$$;
+
+-- Function to check if user is super admin
+CREATE OR REPLACE FUNCTION is_super_admin(uid uuid)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role = 'super_admin' FROM user_profiles WHERE id = uid;
+$$;
+
 -- Super admin can do anything
 CREATE POLICY "Super admins can do anything" ON user_profiles
-  USING (
-    (SELECT role FROM user_profiles WHERE id = auth.uid()) = 'super_admin'
-  );
+  USING (public.get_user_role_safe(auth.uid()) = 'super_admin');
 
 -- Admins can view all profiles
 CREATE POLICY "Admins can view all profiles" ON user_profiles
   FOR SELECT
-  USING (
-    (SELECT role FROM user_profiles WHERE id = auth.uid()) IN ('super_admin', 'admin')
-  );
+  USING (public.get_user_role_safe(auth.uid()) IN ('super_admin', 'admin'));
 
--- Users can view their own profiles
+-- Users can view their own profile
 CREATE POLICY "Users can view their own profile" ON user_profiles
   FOR SELECT
   USING (id = auth.uid());

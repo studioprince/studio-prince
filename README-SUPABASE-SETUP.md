@@ -30,7 +30,17 @@ Follow these steps to set up your Supabase database for the Studio Prince photog
 2. After creating the user, get their UUID and replace the second `REPLACE_WITH_AUTH_USER_ID` placeholder
 3. Run the INSERT statement for the admin user
 
-## 4. Storage Setup
+## 4. Security Definer Functions
+
+The project uses security definer functions to prevent infinite recursion in RLS policies:
+
+- `get_user_role_safe`: Safely retrieves a user's role without triggering recursive policies
+- `get_profile_by_id`: Gets a user profile by ID
+- `create_user_profile`: Creates or updates a user profile
+- `is_admin`: Checks if a user has admin privileges
+- `is_super_admin`: Checks if a user has super admin privileges
+
+## 5. Storage Setup
 
 1. Go to the Storage section in your Supabase dashboard
 2. Create the following buckets:
@@ -43,7 +53,7 @@ Follow these steps to set up your Supabase database for the Studio Prince photog
    - `galleries`: Admin users can upload, owner (client) can view
    - `portfolio`: Admin users can upload, public can view
 
-## 5. Environment Variables
+## 6. Environment Variables
 
 Add these environment variables to your Lovable app:
 

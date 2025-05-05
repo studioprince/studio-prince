@@ -10,22 +10,22 @@ export type UserRole = 'super_admin' | 'admin' | 'client';
 // Define our own UserProfile type that includes profile_completed
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
-// Get user role using RPC (prevents recursion)
+// Get user role using security definer function
 export const getUserRole = async (userId: string): Promise<UserRole> => {
   try {
     // Use security definer function to get user role
-    const { data, error } = await supabase.rpc('get_user_role', {
+    const { data, error } = await supabase.rpc('get_user_role_safe', {
       uid: userId
     });
       
     if (error || !data) {
-      console.error('Error fetching user role:', error);
+      console.error('Error fetching user role with get_user_role_safe:', error);
       return 'client';
     }
     
     return data as UserRole;
   } catch (error) {
-    console.error('Error fetching user role:', error);
+    console.error('Error in getUserRole:', error);
     return 'client';
   }
 };

@@ -82,6 +82,10 @@ export type Database = {
         Args: { uid: string }
         Returns: string
       }
+      get_user_role_safe: {
+        Args: { uid: string }
+        Returns: string
+      }
       is_admin: {
         Args: { uid: string }
         Returns: boolean

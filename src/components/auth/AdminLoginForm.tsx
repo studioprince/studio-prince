@@ -29,6 +29,11 @@ const AdminLoginForm = ({ onSuccess, switchToRegister }: AdminLoginFormProps) =>
         onSuccess();
       } else {
         console.log("Admin login returned false");
+        toast({
+          title: "Login failed",
+          description: "Invalid admin credentials or insufficient permissions",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
       console.error("Admin login error:", error);
