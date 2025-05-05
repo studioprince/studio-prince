@@ -1,7 +1,7 @@
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { supabase, ensureUserProfile } from '@/services/supabaseClient';
+import { supabase, ensureUserProfile, getUserRole } from '@/services/supabaseClient';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { UserProfile } from '@/services/supabaseClient';
@@ -43,39 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Fetching profile for user ID:", userId);
       
-      // First try to get the profile directly with RPC to avoid recursion issues
-      const { data: profileData, error: profileError } = await supabase.rpc('get_profile_by_id', {
-        uid: userId
-      });
-      
-      if (profileData) {
-        console.log("Profile found via RPC:", profileData);
-        return profileData as UserProfile;
-      }
-      
-      if (profileError) {
-        console.error("Error fetching profile with RPC:", profileError);
-      }
-      
-      // Fallback to direct query if RPC fails
-      const { data: directProfile, error: directError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      if (directProfile) {
-        console.log("Profile found via direct query:", directProfile);
-        return directProfile as UserProfile;
-      }
-      
-      if (directError) {
-        console.error("Error fetching profile with direct query:", directError);
-      }
-      
-      // Create profile if not found
-      console.log("Profile not found, creating new profile");
-      return await ensureUserProfile(userId, email);
+      // Use RPC function to get profile safely
+      const profile = await ensureUserProfile(userId, email);
+      return profile;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       return null;
@@ -88,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Initializing auth state");
         setIsLoading(true);
         
-        // First set up auth state listener before checking for session
+        // Set up auth state listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             console.log("Auth state changed:", event, session?.user?.id);
@@ -188,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (profile) {
           // Check if user role matches expected role
           if (expectedRole) {
-            // For admin login, check directly from the profile data
+            // For admin login, check role safely
             if (expectedRole === 'admin' && profile.role !== 'admin' && profile.role !== 'super_admin') {
               console.error("Role mismatch: Expected admin, got", profile.role);
               await supabase.auth.signOut();
@@ -199,7 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               });
               return false;
             } 
-            // For client login, check directly from the profile data
+            // For client login, check role safely
             else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
               console.error("Role mismatch: Expected client, got", profile.role);
               await supabase.auth.signOut();
@@ -277,7 +247,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data.user) {
-        // Manually create profile in case trigger doesn't work
+        // Manually create profile to ensure it exists
         const profile = await fetchUserProfile(data.user.id, email);
         
         if (!profile) {
