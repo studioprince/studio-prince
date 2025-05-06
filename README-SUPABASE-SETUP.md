@@ -9,38 +9,44 @@ Follow these steps to set up your Supabase database for the Studio Prince photog
 2. Navigate to the SQL Editor
 3. Copy the contents of the `supabase-setup.sql` file and paste it into the SQL Editor
 4. Run the SQL script to create all necessary tables
-5. Note: You'll need to replace the `REPLACE_WITH_AUTH_USER_ID` placeholders with actual user IDs
 
-## 2. Create Initial Super Admin User
+## 2. Create Initial Admin Users
 
-1. Create a new user in Supabase Auth:
+After setting up the database, you need to create admin users:
+
+1. First, create a new user in Supabase Auth (Authentication → Users → Add user):
    - Email: koyande.om27@gmail.com
    - Password: Swami@459
 
 2. After creating the user, get their UUID from the Auth > Users section
-3. Replace the `REPLACE_WITH_AUTH_USER_ID` placeholder in the SQL script with this UUID
-4. Run the INSERT statement for the super admin user
 
-## 3. Create Initial Admin User
+3. Run this SQL to make them a super admin:
+```sql
+INSERT INTO public.users (id, email, name, role) 
+VALUES ('PASTE_USER_UUID_HERE', 'koyande.om27@gmail.com', 'Super Admin', 'super_admin');
+```
 
-1. Create another user in Supabase Auth:
+4. Create another user for regular admin:
    - Email: StudioAdmin@gmail.com
    - Password: admin123
 
-2. After creating the user, get their UUID and replace the second `REPLACE_WITH_AUTH_USER_ID` placeholder
-3. Run the INSERT statement for the admin user
+5. Run this SQL to make them a regular admin:
+```sql
+INSERT INTO public.users (id, email, name, role) 
+VALUES ('PASTE_USER_UUID_HERE', 'StudioAdmin@gmail.com', 'Studio Admin', 'admin');
+```
 
-## 4. Security Definer Functions
+## 3. Database Security Model
 
 The project uses security definer functions to prevent infinite recursion in RLS policies:
 
-- `get_user_role_safe`: Safely retrieves a user's role without triggering recursive policies
-- `get_profile_by_id`: Gets a user profile by ID
-- `create_user_profile`: Creates or updates a user profile
+- `get_role`: Safely retrieves a user's role without triggering recursive policies
+- `get_user_by_id`: Gets a user profile by ID
+- `handle_user_profile`: Creates or updates a user profile
 - `is_admin`: Checks if a user has admin privileges
 - `is_super_admin`: Checks if a user has super admin privileges
 
-## 5. Storage Setup
+## 4. Storage Setup
 
 1. Go to the Storage section in your Supabase dashboard
 2. Create the following buckets:
@@ -53,9 +59,16 @@ The project uses security definer functions to prevent infinite recursion in RLS
    - `galleries`: Admin users can upload, owner (client) can view
    - `portfolio`: Admin users can upload, public can view
 
+## 5. Authentication Setup
+
+1. Go to Authentication → Settings → URL configuration
+2. Set the Site URL to your application URL
+3. Add Redirect URLs for your application
+4. If testing locally, you may want to disable email confirmations temporarily
+
 ## 6. Environment Variables
 
-Add these environment variables to your Lovable app:
+Add these environment variables to your app:
 
 ```
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
@@ -81,12 +94,3 @@ Once everything is set up, you should be able to:
 - **Super Admin**: Can manage all users, bookings, galleries, and invoices
 - **Admin**: Can manage bookings, galleries, and invoices
 - **Client**: Can see their own bookings, galleries, and invoices
-
-## Next Steps
-
-After setting up Supabase, you'll need to:
-
-1. Update the booking system to use Supabase
-2. Implement the gallery system with image uploads
-3. Set up invoicing with Supabase
-4. Implement real-time updates using Supabase's realtime feature

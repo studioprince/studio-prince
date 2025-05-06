@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/services/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { Form } from '@/components/ui/form';
 import { User } from 'lucide-react';
 
 const ProfileSetup = () => {
@@ -59,21 +58,27 @@ const ProfileSetup = () => {
         phone: formData.phone
       });
 
-      // Update user profile - for this specific operation we use the direct update 
-      // since our RLS policy allows users to update their own profiles
-      const { error } = await supabase
-        .from('user_profiles')
+      // Use our security definer RPC function to update the profile
+      const { error } = await supabase.rpc('handle_user_profile', {
+        uid: user.id,
+        user_email: user.email || '',
+        user_name: formData.name,
+        user_role: user.role,
+        user_phone: formData.phone
+      });
+
+      // Also update the profile_completed flag directly
+      const { error: updateError } = await supabase
+        .from('users')
         .update({
-          name: formData.name,
-          phone: formData.phone,
           profile_completed: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        throw error;
+      if (error || updateError) {
+        console.error("Error updating profile:", error || updateError);
+        throw error || updateError;
       }
 
       toast({

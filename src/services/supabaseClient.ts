@@ -7,19 +7,19 @@ export const supabase = supabaseIntegration;
 // User roles
 export type UserRole = 'super_admin' | 'admin' | 'client';
 
-// Define our own UserProfile type that includes profile_completed
-export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+// Define our own User type that includes profile data
+export type UserProfile = Database['public']['Tables']['users']['Row'];
 
 // Get user role using security definer function
 export const getUserRole = async (userId: string): Promise<UserRole> => {
   try {
-    // Use security definer function to get user role
-    const { data, error } = await supabase.rpc('get_user_role_safe', {
+    // Use security definer function to get user role safely
+    const { data, error } = await supabase.rpc('get_role', {
       uid: userId
     });
       
     if (error || !data) {
-      console.error('Error fetching user role with get_user_role_safe:', error);
+      console.error('Error fetching user role:', error);
       return 'client';
     }
     
@@ -30,36 +30,37 @@ export const getUserRole = async (userId: string): Promise<UserRole> => {
   }
 };
 
-// Helper function to create a user profile if it doesn't exist
+// Helper function to create or get a user profile
 export const ensureUserProfile = async (userId: string, email: string) => {
   try {
     // Use security definer function to check if profile exists
-    const { data: profileData, error: profileError } = await supabase.rpc('get_profile_by_id', {
+    const { data: profileData, error: profileError } = await supabase.rpc('get_user_by_id', {
       uid: userId
     });
     
     if (profileError) {
-      console.error('Error checking for existing profile:', profileError);
+      console.error('Error checking for existing user:', profileError);
       return null;
     }
     
     // If profile exists, return it
     if (profileData) {
-      console.log("Profile found via RPC:", profileData);
+      console.log("User found via RPC:", profileData);
       return profileData as UserProfile;
     }
     
     // If profile doesn't exist, create it via security definer function
-    console.log('Creating missing profile for user:', userId);
+    console.log('Creating missing user profile for:', userId);
     const { data: user } = await supabase.auth.getUser();
     const name = user?.user?.user_metadata?.name || email.split('@')[0] || 'User';
     
     // Insert via RPC to avoid RLS policy issues
-    const { data: newProfile, error: insertError } = await supabase.rpc('create_user_profile', {
+    const { data: newProfile, error: insertError } = await supabase.rpc('handle_user_profile', {
       uid: userId,
       user_email: email,
       user_name: name,
-      user_role: 'client'
+      user_role: 'client',
+      user_phone: null
     });
       
     if (insertError) {
@@ -80,7 +81,7 @@ export const getCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // Get user role from RPC function
+      // Get user profile data
       const profile = await ensureUserProfile(user.id, user.email || '');
       
       if (profile) {
@@ -152,17 +153,13 @@ export const createUser = async (email: string, password: string, role: UserRole
     
     // Create the profile with role
     if (authData?.user) {
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .insert([
-          { 
-            id: authData.user.id,
-            email,
-            name,
-            role,
-            profile_completed: false
-          }
-        ]);
+      const { error: profileError } = await supabase.rpc('handle_user_profile', {
+        uid: authData.user.id,
+        user_email: email,
+        user_name: name,
+        user_role: role,
+        user_phone: null
+      });
         
       if (profileError) throw profileError;
       

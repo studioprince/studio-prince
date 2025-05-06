@@ -1,12 +1,7 @@
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { supabase, ensureUserProfile, getUserRole } from '@/services/supabaseClient';
-import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Database } from '@/integrations/supabase/types';
-import { UserProfile } from '@/services/supabaseClient';
-
-type UserRole = 'super_admin' | 'admin' | 'client';
+import { supabase, ensureUserProfile, getUserRole, UserRole } from '@/services/supabaseClient';
 
 export interface User {
   id: string;
