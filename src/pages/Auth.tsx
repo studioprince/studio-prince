@@ -17,16 +17,12 @@ const Auth = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    console.log("Auth page - Auth state:", { isAuthenticated, isLoading, userRole: user?.role });
+    console.log("Auth page - Auth state:", { isAuthenticated, isLoading });
     
-    // If user is already authenticated as a client, redirect them
-    if (isAuthenticated && !isLoading && user && user.role === 'client') {
+    // If user is already authenticated, redirect them
+    if (isAuthenticated && !isLoading && user) {
       console.log("Client authenticated, redirecting to:", from);
       navigate(`/${from}`);
-    } else if (isAuthenticated && !isLoading && user && (user.role === 'admin' || user.role === 'super_admin')) {
-      // If admin is trying to access client login, redirect to admin dashboard
-      console.log("Admin detected in client login, redirecting to dashboard");
-      navigate('/dashboard');
     }
   }, [isAuthenticated, navigate, from, isLoading, user]);
 
@@ -57,7 +53,7 @@ const Auth = () => {
             </div>
           </div>
           <h1 className="text-2xl md:text-3xl font-playfair font-semibold">
-            {isLogin ? "Client Login" : "Create Client Account"}
+            {isLogin ? "Login" : "Create Account"}
           </h1>
           <p className="text-gray-600 mt-2">
             {isLogin
@@ -83,15 +79,6 @@ const Auth = () => {
               switchToLogin={() => setIsLogin(true)}
             />
           )}
-        </div>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
-            Are you an administrator?{' '}
-            <a href="/admin/auth" className="text-primary hover:underline font-medium">
-              Go to admin login
-            </a>
-          </p>
         </div>
 
         <p className="text-center text-gray-500 text-sm mt-8">

@@ -1,13 +1,12 @@
 
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { supabase, ensureUserProfile, getUserRole, UserRole } from '@/services/supabaseClient';
+import { supabase, ensureClientProfile } from '@/services/supabaseClient';
 
 export interface User {
   id: string;
   email: string;
   name: string | null;
-  role: UserRole;
   phone: string | null;
   profile_completed: boolean;
 }
@@ -16,8 +15,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, expectedRole?: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, role?: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -39,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("Fetching profile for user ID:", userId);
       
       // Use RPC function to get profile safely
-      const profile = await ensureUserProfile(userId, email);
+      const profile = await ensureClientProfile(userId, email);
       return profile;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -68,7 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     id: session.user.id,
                     email: profile.email,
                     name: profile.name,
-                    role: profile.role as UserRole,
                     phone: profile.phone,
                     profile_completed: profile.profile_completed ?? false
                   });
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               id: session.user.id,
               email: profile.email,
               name: profile.name,
-              role: profile.role as UserRole,
               phone: profile.phone,
               profile_completed: profile.profile_completed ?? false
             });
@@ -132,9 +129,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string, expectedRole?: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      console.log(`Attempting login with email: ${email}, expected role: ${expectedRole || 'any'}`);
+      console.log(`Attempting login with email: ${email}`);
       setIsLoading(true);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -151,38 +148,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await fetchUserProfile(data.user.id, data.user.email || '');
         
         if (profile) {
-          // Check if user role matches expected role
-          if (expectedRole) {
-            // For admin login, check role safely
-            if (expectedRole === 'admin' && profile.role !== 'admin' && profile.role !== 'super_admin') {
-              console.error("Role mismatch: Expected admin, got", profile.role);
-              await supabase.auth.signOut();
-              toast({
-                title: "Unauthorized",
-                description: "This login is for administrators only.",
-                variant: "destructive"
-              });
-              return false;
-            } 
-            // For client login, check role safely
-            else if (expectedRole === 'client' && (profile.role === 'admin' || profile.role === 'super_admin')) {
-              console.error("Role mismatch: Expected client, got", profile.role);
-              await supabase.auth.signOut();
-              toast({
-                title: "Admin detected",
-                description: "Please use the admin login page.",
-                variant: "destructive"
-              });
-              return false;
-            }
-          }
-          
-          console.log("Login successful, setting user with role:", profile.role);
+          console.log("Login successful, setting user");
           setUser({
             id: data.user.id,
             email: profile.email,
             name: profile.name || data.user.email?.split('@')[0] || 'User',
-            role: profile.role as UserRole,
             phone: profile.phone || null,
             profile_completed: profile.profile_completed ?? false
           });
@@ -219,9 +189,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const register = async (email: string, password: string, name: string, role: string = 'client') => {
+  const register = async (email: string, password: string, name: string) => {
     try {
-      console.log(`Attempting to register ${email} with role ${role}`);
+      console.log(`Attempting to register ${email}`);
       setIsLoading(true);
       
       // First create the auth user
@@ -230,8 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: {
-            name,
-            role
+            name
           }
         }
       });
@@ -256,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         toast({
           title: "Registration successful",
-          description: `Your ${role} account has been created. Please complete your profile.`
+          description: "Your account has been created. Please complete your profile."
         });
         
         return true;

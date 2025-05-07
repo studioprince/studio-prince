@@ -43,8 +43,7 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
     setIsLoading(true);
     
     try {
-      // Use the register function from AuthContext instead of direct implementation
-      const success = await register(email, password, name, 'client');
+      const success = await register(email, password, name);
       
       if (success) {
         toast({

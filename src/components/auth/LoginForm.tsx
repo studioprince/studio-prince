@@ -21,7 +21,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
     
     try {
       console.log("Client login attempt:", email);
-      const success = await login(email, password, 'client');
+      const success = await login(email, password);
       
       if (success) {
         console.log("Client login successful");
@@ -91,7 +91,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
         disabled={isLoading}
         className="w-full btn-primary"
       >
-        {isLoading ? "Signing in..." : "Client Sign In"}
+        {isLoading ? "Signing in..." : "Sign In"}
       </button>
 
       <div className="text-center">
@@ -109,7 +109,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
 
       {/* Demo account info */}
       <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
-        <p className="font-medium mb-1 text-center">Client Demo Account:</p>
+        <p className="font-medium mb-1 text-center">Demo Account:</p>
         <div className="flex justify-between items-center">
           <p>client@example.com / client123</p>
           <button 
