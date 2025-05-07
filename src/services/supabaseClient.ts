@@ -19,9 +19,11 @@ export type ClientProfile = {
 export const ensureClientProfile = async (userId: string, email: string) => {
   try {
     // Use security definer function to check if profile exists
-    const { data: profileData, error: profileError } = await supabase.rpc('get_client_by_id', {
-      uid: userId
-    });
+    // Since the RPC is not typed, we need to manually call it
+    const { data: profileData, error: profileError } = await supabase.rpc(
+      'get_client_by_id', 
+      { uid: userId }
+    ) as unknown as { data: ClientProfile | null, error: any };
     
     if (profileError) {
       console.error('Error checking for existing client:', profileError);
@@ -40,12 +42,16 @@ export const ensureClientProfile = async (userId: string, email: string) => {
     const name = user?.user?.user_metadata?.name || email.split('@')[0] || 'User';
     
     // Insert via RPC to avoid RLS policy issues
-    const { data: newProfile, error: insertError } = await supabase.rpc('handle_client_profile', {
-      uid: userId,
-      client_email: email,
-      client_name: name,
-      client_phone: null
-    });
+    // Since the RPC is not typed, we need to manually call it
+    const { data: newProfile, error: insertError } = await supabase.rpc(
+      'handle_client_profile',
+      {
+        uid: userId,
+        client_email: email,
+        client_name: name,
+        client_phone: null
+      }
+    ) as unknown as { data: ClientProfile | null, error: any };
       
     if (insertError) {
       console.error('Error creating client profile:', insertError);

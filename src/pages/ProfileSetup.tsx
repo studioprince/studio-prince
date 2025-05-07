@@ -59,12 +59,16 @@ const ProfileSetup = () => {
       });
 
       // Use our security definer RPC function to update the profile
-      const { error } = await supabase.rpc('handle_client_profile', {
-        uid: user.id,
-        client_email: user.email || '',
-        client_name: formData.name,
-        client_phone: formData.phone
-      });
+      // Since the RPC is not typed, we need to manually call it
+      const { error } = await supabase.rpc(
+        'handle_client_profile',
+        {
+          uid: user.id,
+          client_email: user.email || '',
+          client_name: formData.name,
+          client_phone: formData.phone
+        }
+      );
 
       // Also update the profile_completed flag directly
       const { error: updateError } = await supabase

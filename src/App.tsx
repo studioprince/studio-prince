@@ -10,7 +10,6 @@ import Portfolio from "./pages/Portfolio";
 import Contact from "./pages/Contact";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
-import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
 import ProfileSetup from "./pages/ProfileSetup";
 import AboutUs from "./pages/AboutUs";
@@ -27,7 +26,7 @@ const queryClient = new QueryClient({
 });
 
 // ProtectedRoute component
-const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React.ReactNode, requiredRole?: 'super_admin' | 'admin' | 'client' }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
@@ -40,22 +39,7 @@ const ProtectedRoute = ({ children, requiredRole = 'client' }: { children: React
   
   if (!isAuthenticated) {
     console.log("Not authenticated, redirecting to auth page");
-    // Redirect clients to client auth and admins to admin auth
-    if (requiredRole === 'admin' || requiredRole === 'super_admin') {
-      return <Navigate to="/admin/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
-    }
     return <Navigate to="/auth" state={{ from: window.location.pathname.substring(1) }} replace />;
-  }
-  
-  console.log("Checking role access:", { userRole: user?.role, requiredRole });
-  
-  // Check role permissions
-  if (
-    (requiredRole === 'super_admin' && user?.role !== 'super_admin') ||
-    (requiredRole === 'admin' && user?.role !== 'super_admin' && user?.role !== 'admin')
-  ) {
-    console.log("Insufficient permissions, redirecting to dashboard");
-    return <Navigate to="/dashboard" replace />;
   }
   
   // Check if profile is completed, if not redirect to profile setup
@@ -91,7 +75,6 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/admin/auth" element={<AdminAuth />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
