@@ -43,8 +43,8 @@ const AdminRegisterForm = ({ onSuccess, switchToLogin }: AdminRegisterFormProps)
     setIsLoading(true);
     
     try {
-      // Register as admin
-      const success = await register(email, password, name, 'admin');
+      // Remove the fourth 'admin' parameter since register only accepts email, password, and name
+      const success = await register(email, password, name);
       
       if (success) {
         toast({

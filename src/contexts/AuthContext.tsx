@@ -9,6 +9,7 @@ export interface User {
   name: string | null;
   phone: string | null;
   profile_completed: boolean;
+  role: string;  // Add this property
 }
 
 interface AuthContextType {
@@ -68,7 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     email: profile.email,
                     name: profile.name,
                     phone: profile.phone,
-                    profile_completed: profile.profile_completed ?? false
+                    profile_completed: profile.profile_completed ?? false,
+                    role: 'client' // Always set role as client
                   });
                 } else {
                   console.warn('User authenticated but profile not found or created');
@@ -105,7 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: profile.email,
               name: profile.name,
               phone: profile.phone,
-              profile_completed: profile.profile_completed ?? false
+              profile_completed: profile.profile_completed ?? false,
+              role: 'client' // Always set role as client
             });
           } else {
             console.warn('User authenticated but profile not found or created');
@@ -154,7 +157,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: profile.email,
             name: profile.name || data.user.email?.split('@')[0] || 'User',
             phone: profile.phone || null,
-            profile_completed: profile.profile_completed ?? false
+            profile_completed: profile.profile_completed ?? false,
+            role: 'client' // Always set role as client
           });
           
           toast({

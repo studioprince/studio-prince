@@ -1,4 +1,3 @@
-
 // Custom type definitions for Supabase functions that aren't correctly typed
 
 import { PostgrestError } from "@supabase/supabase-js";
@@ -20,5 +19,11 @@ declare module '@supabase/supabase-js' {
         client_phone?: string | null;
       }
     ): Promise<{ data: ClientProfile | null; error: PostgrestError | null }>;
+
+    // Keep the existing function types for backward compatibility
+    rpc(
+      fn: 'get_profile_by_id' | 'create_user_profile' | 'get_user_role' | 'get_user_role_safe' | 'is_admin' | 'is_super_admin',
+      params: any
+    ): Promise<{ data: any; error: PostgrestError | null }>;
   }
 }

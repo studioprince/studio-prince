@@ -71,8 +71,8 @@ const ProfileSetup = () => {
       );
 
       // Also update the profile_completed flag directly
-      const { error: updateError } = await supabase
-        .from('clients')
+      // Remove this direct update and rely on the RPC function
+      const { error: updateError } = await supabase.from('clients')
         .update({
           profile_completed: true,
           updated_at: new Date().toISOString()

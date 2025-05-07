@@ -21,8 +21,8 @@ const AdminLoginForm = ({ onSuccess, switchToRegister }: AdminLoginFormProps) =>
     
     try {
       console.log("Admin login attempt:", email);
-      // Explicitly pass 'admin' role for admin login
-      const success = await login(email, password, 'admin');
+      // Remove the third 'admin' parameter since login only accepts email and password now
+      const success = await login(email, password);
       
       if (success) {
         console.log("Admin login successful");

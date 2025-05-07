@@ -13,10 +13,8 @@ const AdminOrders = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      const allBookings = dbService.getBookings();
-      setOrders(allBookings);
-    }
+    const allBookings = dbService.getBookings();
+    setOrders(allBookings);
   }, [user]);
 
   const filteredOrders = filterStatus === 'all' 
