@@ -15,11 +15,20 @@ const ClientOrders = () => {
 
   // Load orders for this user
   useEffect(() => {
-    if (user) {
-      // Get user's bookings from database
-      const userOrders = dbService.getBookingsByUserId(user.id);
-      setOrders(userOrders);
-    }
+    const fetchOrders = async () => {
+      if (user) {
+        try {
+          const response = await fetch(`/api/bookings?userId=${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setOrders(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch bookings", error);
+        }
+      }
+    };
+    fetchOrders();
   }, [user]);
 
   const viewOrderDetails = (order: Booking) => {
@@ -34,23 +43,15 @@ const ClientOrders = () => {
     navigate('/booking');
   };
 
-  const handleCancelBooking = (id: string) => {
-    const updatedBooking = dbService.updateBookingStatus(id, 'cancelled');
-    
-    if (updatedBooking) {
-      // Update local state
-      setOrders(orders.map(order => 
-        order.id === id ? updatedBooking : order
-      ));
-      
-      // Close modal
-      setSelectedOrder(null);
-      
-      toast({
-        title: "Booking cancelled",
-        description: "Your booking has been cancelled successfully."
-      });
-    }
+  const handleCancelBooking = async (id: string) => {
+    // Note: In a real app we'd have a specific cancel endpoint or PUT update
+    // For now we'll just mock the update locally as the backend doesn't have cancel logic yet
+    // I will add a proper status update endpoint later
+    toast({
+      title: "Cancellation not implemented yet",
+      description: "Please contact support to cancel.",
+      variant: "destructive"
+    });
   };
 
   // Helper for status badge styling
@@ -95,7 +96,7 @@ const ClientOrders = () => {
           New Booking
         </button>
       </div>
-      
+
       {/* Orders Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded-lg overflow-hidden">
@@ -158,7 +159,7 @@ const ClientOrders = () => {
           </tbody>
         </table>
       </div>
-      
+
       {orders.length === 0 && (
         <div className="mt-8 text-center">
           <p className="mb-4">Ready to capture your special moments?</p>
@@ -177,7 +178,7 @@ const ClientOrders = () => {
           <div className="bg-white rounded-lg max-w-lg w-full">
             <div className="border-b p-4 flex items-center justify-between">
               <h3 className="text-lg font-medium">Booking Details</h3>
-              <button 
+              <button
                 onClick={closeOrderDetails}
                 className="text-gray-400 hover:text-gray-500"
               >
@@ -189,22 +190,22 @@ const ClientOrders = () => {
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Booking ID</h4>
                 <p>#{selectedOrder.id}</p>
               </div>
-              
+
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Service</h4>
                 <p>{selectedOrder.serviceType}</p>
               </div>
-              
+
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Date & Time</h4>
                 <p>{new Date(selectedOrder.date).toLocaleDateString()} at {selectedOrder.time}</p>
               </div>
-              
+
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Location</h4>
                 <p>{selectedOrder.location}</p>
               </div>
-              
+
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Status</h4>
                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClasses(selectedOrder.status)}`}>
@@ -212,19 +213,25 @@ const ClientOrders = () => {
                   {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                 </span>
               </div>
-              
+
               <div>
                 <h4 className="text-sm font-medium text-gray-500 mb-1">Request Date</h4>
-                <p>{new Date(selectedOrder.requestDate).toLocaleDateString()}</p>
+                <p>
+                  {selectedOrder.requestDate
+                    ? new Date(selectedOrder.requestDate).toLocaleDateString()
+                    : (selectedOrder.createdAt
+                      ? new Date(selectedOrder.createdAt).toLocaleDateString()
+                      : 'Date not available')}
+                </p>
               </div>
-              
-              {selectedOrder.notes && (
+
+              {(selectedOrder.notes || selectedOrder.specialInstructions) && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-1">Notes</h4>
-                  <p className="text-gray-600">{selectedOrder.notes}</p>
+                  <p className="text-gray-600">{selectedOrder.notes || selectedOrder.specialInstructions}</p>
                 </div>
               )}
-              
+
               <div className="pt-4 border-t flex justify-between">
                 {selectedOrder.status === 'pending' && (
                   <button

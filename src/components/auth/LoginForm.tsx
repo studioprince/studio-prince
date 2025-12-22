@@ -18,11 +18,11 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       console.log("Client login attempt:", email);
       const success = await login(email, password);
-      
+
       if (success) {
         console.log("Client login successful");
         onSuccess();
@@ -80,7 +80,7 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
           disabled={isLoading}
         />
         <div className="flex justify-end">
-          <Link to="#" className="text-sm text-primary hover:underline mt-1">
+          <Link to="/forgot-password" className="text-sm text-primary hover:underline mt-1">
             Forgot password?
           </Link>
         </div>
@@ -105,21 +105,6 @@ const LoginForm = ({ onSuccess, switchToRegister }: LoginFormProps) => {
             Create one
           </button>
         </p>
-      </div>
-
-      {/* Demo account info */}
-      <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-700 mt-4">
-        <p className="font-medium mb-1 text-center">Demo Account:</p>
-        <div className="flex justify-between items-center">
-          <p>client@example.com / client123</p>
-          <button 
-            type="button"
-            onClick={fillDemoCredentials}
-            className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
-          >
-            Use This
-          </button>
-        </div>
       </div>
     </form>
   );

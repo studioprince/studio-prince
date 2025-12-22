@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
+// import { supabase } from '@/services/supabaseClient'; // Removed Supabase import
 import { useAuth } from '@/contexts/AuthContext';
 import ClientOrders from '@/components/ClientOrders';
 import ClientGallery from '@/components/gallery/ClientGallery';
 import InvoiceList from '@/components/invoices/InvoiceList';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ const Dashboard = () => {
     email: user?.email || '',
     phone: user?.phone || '+91 '
   });
-  
+
   // Update form data when user data changes
   useEffect(() => {
     if (user) {
@@ -30,16 +30,16 @@ const Dashboard = () => {
       });
     }
   }, [user]);
-  
+
   useEffect(() => {
     window.scrollTo(0, 0);
-    
+
     // Redirect if not logged in
     if (!user) {
       navigate('/auth', { state: { from: 'dashboard' } });
     }
   }, [user, navigate]);
-  
+
   // Early return if no user to avoid errors
   if (!user) {
     return null;
@@ -54,27 +54,10 @@ const Dashboard = () => {
     if (!user) return;
 
     try {
-      // Update client profile in Supabase
-      // Since the RPC is not typed, we need to manually call it
-      const { error } = await supabase.rpc(
-        'handle_client_profile',
-        {
-          uid: user.id,
-          client_email: user.email || '',
-          client_name: formData.name,
-          client_phone: formData.phone
-        }
-      );
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully."
+      await updateProfile(user.id, {
+        name: formData.name,
+        phone: formData.phone
       });
-      
-      // Refresh page to update context
-      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Error updating profile",
@@ -91,12 +74,12 @@ const Dashboard = () => {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
+
     // Ensure phone number starts with +91
     if (!value.startsWith('+91 ')) {
       value = '+91 ' + value.replace('+91 ', '');
     }
-    
+
     setFormData(prev => ({ ...prev, phone: value }));
   };
 
@@ -114,9 +97,9 @@ const Dashboard = () => {
               {user.phone && <p className="text-gray-600 text-sm mt-1">{user.phone}</p>}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-            <button 
+            <button
               onClick={handleLogout}
               className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 inline-flex items-center gap-1"
             >
@@ -134,23 +117,23 @@ const Dashboard = () => {
               <TabsTrigger value="invoices">My Invoices</TabsTrigger>
               <TabsTrigger value="profile">Profile</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="bookings">
               <ClientOrders />
             </TabsContent>
-            
+
             <TabsContent value="galleries">
               <ClientGallery />
             </TabsContent>
-            
+
             <TabsContent value="invoices">
               <InvoiceList />
             </TabsContent>
-            
+
             <TabsContent value="profile">
               <div className="max-w-lg mx-auto">
                 <h2 className="text-xl font-playfair font-semibold mb-6">Your Profile</h2>
-                
+
                 <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium mb-1">
@@ -164,7 +147,7 @@ const Dashboard = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
-                  
+
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium mb-1">
                       Email Address
@@ -177,7 +160,7 @@ const Dashboard = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50"
                     />
                   </div>
-                  
+
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium mb-1">
                       Phone Number
@@ -191,7 +174,7 @@ const Dashboard = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <button
                       type="button"

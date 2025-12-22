@@ -11,25 +11,29 @@ const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, user } = useAuth();
-  
-  const message = location.state?.message || null;
-  const from = location.state?.from || 'dashboard'; // Default redirect to dashboard
 
+  const message = location.state?.message || null;
   useEffect(() => {
     window.scrollTo(0, 0);
-    console.log("Auth page - Auth state:", { isAuthenticated, isLoading });
-    
+    console.log("Auth page - Auth state:", { isAuthenticated, isLoading, user });
+
     // If user is already authenticated, redirect them
     if (isAuthenticated && !isLoading && user) {
-      console.log("Client authenticated, redirecting to:", from);
-      navigate(`/${from}`);
+      let destination = location.state?.from;
+
+      // If no specific destination, redirect based on role
+      if (!destination) {
+        destination = user.role === 'admin' ? 'admin' : 'dashboard';
+      }
+
+      console.log("Authenticated, redirecting to:", destination);
+      navigate(`/${destination}`);
     }
-  }, [isAuthenticated, navigate, from, isLoading, user]);
+  }, [isAuthenticated, navigate, location.state, isLoading, user]);
 
   const handleAuthSuccess = () => {
-    // Redirect based on where the user came from
-    console.log("Auth success, redirecting to:", from);
-    navigate(`/${from}`);
+    // We rely on the useEffect to handle redirection once the user state is updated
+    console.log("Auth success, waiting for state update to redirect...");
   };
 
   if (isLoading) {

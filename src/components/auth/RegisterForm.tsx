@@ -10,12 +10,13 @@ type RegisterFormProps = {
 
 const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { register } = useAuth();
 
   const validatePassword = () => {
@@ -23,28 +24,29 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
       setPasswordError("Passwords don't match");
       return false;
     }
-    
+
     if (password.length < 6) {
       setPasswordError("Password must be at least 6 characters");
       return false;
     }
-    
+
     setPasswordError('');
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!validatePassword()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      const success = await register(email, password, name);
-      
+      // Pass phone number to register function
+      const success = await register(email, password, name, phone);
+
       if (success) {
         toast({
           title: "Registration successful",
@@ -77,6 +79,22 @@ const RegisterForm = ({ onSuccess, switchToLogin }: RegisterFormProps) => {
           onChange={e => setName(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
           placeholder="John Doe"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="phone" className="block text-sm font-medium mb-1">
+          Phone Number
+        </label>
+        <input
+          id="phone"
+          type="tel"
+          required
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          placeholder="+91 1234567890"
           disabled={isLoading}
         />
       </div>

@@ -2,14 +2,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { User } from 'lucide-react';
+import { User, Mail, Check, AlertCircle } from 'lucide-react';
 
 const ProfileSetup = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, updateProfile, sendOTP, verifyOTP } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '+91 ',
@@ -26,15 +29,9 @@ const ProfileSetup = () => {
   }, [user]);
 
   useEffect(() => {
-    console.log("ProfileSetup - Auth state:", { isLoading, user });
-    
     // If user isn't logged in, redirect to auth
     if (!isLoading && !user) {
       navigate('/auth');
-    }
-    // If user already completed profile setup, redirect to dashboard
-    else if (!isLoading && user && user.profile_completed) {
-      navigate('/dashboard');
     }
   }, [isLoading, user, navigate]);
 
@@ -43,54 +40,21 @@ const ProfileSetup = () => {
     setIsSubmitting(true);
 
     try {
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to complete your profile",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (!user) return;
 
-      console.log("Updating user profile:", {
-        id: user.id,
+      const success = await updateProfile({
         name: formData.name,
         phone: formData.phone
       });
 
-      // Use our security definer RPC function to update the profile
-      // Since the RPC is not typed, we need to manually call it
-      const { error } = await supabase.rpc(
-        'handle_client_profile',
-        {
-          uid: user.id,
-          client_email: user.email || '',
-          client_name: formData.name,
-          client_phone: formData.phone
+      if (success) {
+        toast({ title: "Profile Updated", description: "Your details have been saved." });
+        // Don't auto-redirect if not verified? 
+        // For now, allow redirect if profile is "completed" (saved).
+        if (user.verified) {
+          navigate('/dashboard');
         }
-      );
-
-      // Also update the profile_completed flag directly
-      // Remove this direct update and rely on the RPC function
-      const { error: updateError } = await supabase.from('clients')
-        .update({
-          profile_completed: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error || updateError) {
-        console.error("Error updating profile:", error || updateError);
-        throw error || updateError;
       }
-
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been set up successfully"
-      });
-
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Profile setup error:', error);
       toast({
@@ -103,9 +67,28 @@ const ProfileSetup = () => {
     }
   };
 
+  const handleSendOTP = async () => {
+    const success = await sendOTP();
+    if (success) setOtpSent(true);
+  };
+
+  const handleVerifyOTP = async () => {
+    setIsVerifying(true);
+    const success = await verifyOTP(otp);
+    setIsVerifying(false);
+    if (success) {
+      setOtpSent(false);
+      setOtp('');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleContinue = () => {
+    navigate('/dashboard');
   };
 
   if (isLoading) {
@@ -132,12 +115,84 @@ const ProfileSetup = () => {
             Complete Your Profile
           </h1>
           <p className="text-gray-600 mt-2">
-            Please provide some additional information to complete your profile.
+            Please verify your email and complete your details.
           </p>
         </div>
 
-        <div className="bg-white p-6 md:p-8 rounded-lg shadow-sm">
+        <div className="bg-white p-6 md:p-8 rounded-lg shadow-sm space-y-8">
+          {/* Email Verification Section */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Verification
+            </h3>
+
+            <div className="bg-gray-50 p-4 rounded-md mb-4">
+              <p className="text-sm text-gray-700">Email: <strong>{user?.email}</strong></p>
+              <div className="flex items-center gap-2 mt-2">
+                Status:
+                {user?.verified ? (
+                  <span className="text-green-600 font-bold flex items-center gap-1">
+                    <Check className="h-4 w-4" /> Verified
+                  </span>
+                ) : (
+                  <span className="text-amber-600 font-bold flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" /> Not Verified
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {!user?.verified && (
+              <div className="space-y-4">
+                {!otpSent ? (
+                  <button
+                    onClick={handleSendOTP}
+                    className="w-full py-2 border border-primary text-primary rounded-md hover:bg-blue-50 transition-colors"
+                  >
+                    Send Verification Code
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Enter 6-digit OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md text-center tracking-widest text-lg"
+                      maxLength={6}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setOtpSent(false)}
+                        className="flex-1 py-2 text-gray-600 hover:text-gray-900"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleVerifyOTP}
+                        disabled={isVerifying || otp.length < 6}
+                        className="flex-1 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {isVerifying ? 'Verifying...' : 'Verify Code'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 text-center">
+                  Note: If you don't use real credentials, check the server console for the mock OTP.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Profile Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Personal Details
+            </h3>
+
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-2">
                 Full Name
@@ -152,7 +207,7 @@ const ProfileSetup = () => {
                 placeholder="Your full name"
               />
             </div>
-            
+
             <div>
               <label htmlFor="phone" className="block text-sm font-medium mb-2">
                 Phone Number
@@ -165,18 +220,17 @@ const ProfileSetup = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="+91 9876543210"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Please include country code
-              </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full btn-primary py-2.5"
-            >
-              {isSubmitting ? 'Saving...' : 'Complete Profile'}
-            </button>
+            <div className="flex gap-4 pt-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 btn-primary py-2.5"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Details'}
+              </button>
+            </div>
           </form>
         </div>
       </div>

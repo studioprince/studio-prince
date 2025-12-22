@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { dbService, Booking } from '@/services/database';
+// import { dbService, Booking } from '@/services/database';
 
 // Types for form data
 interface BookingFormData {
@@ -42,7 +43,8 @@ const BookingForm = () => {
       setFormData(prev => ({
         ...prev,
         name: user.name || '',
-        email: user.email || ''
+        email: user.email || '',
+        phone: user.phone || '' // Pre-fill phone if available
       }));
     }
   }, [user]);
@@ -56,41 +58,55 @@ const BookingForm = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Create new booking object
-    const newBooking: Booking = {
-      id: `booking-${Date.now()}`,
-      userId: user?.id || 'guest',
-      customerName: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      serviceType: formData.serviceType,
-      date: formData.date,
-      time: formData.time,
-      location: formData.location,
-      status: 'pending',
-      requestDate: new Date().toISOString().split('T')[0],
-      notes: formData.specialInstructions,
-    };
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id || 'guest',
+          customerName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          serviceType: formData.serviceType,
+          date: formData.date,
+          time: formData.time,
+          location: formData.location,
+          specialInstructions: formData.specialInstructions,
+        }),
+      });
 
-    // Save booking to database
-    dbService.saveBooking(newBooking);
-      
-    // Success toast
-    toast({
-      title: "Booking Request Submitted",
-      description: "We'll review your request and get back to you soon!",
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit booking');
+      }
 
-    // Reset form
-    setFormData(initialFormState);
-    setIsSubmitting(false);
+      // Success toast
+      toast({
+        title: "Booking Request Submitted",
+        description: "We'll review your request and get back to you soon!",
+      });
 
-    // Redirect to dashboard to view the booking
-    navigate('/dashboard');
+      // Reset form
+      setFormData(initialFormState);
+
+      // Redirect to dashboard to view the booking
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Booking submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -98,7 +114,7 @@ const BookingForm = () => {
       {/* Personal Information */}
       <div className="space-y-4">
         <h3 className="font-playfair text-xl">Personal Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-1">
@@ -115,7 +131,7 @@ const BookingForm = () => {
               placeholder="John Doe"
             />
           </div>
-          
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
               Email Address *
@@ -132,7 +148,7 @@ const BookingForm = () => {
             />
           </div>
         </div>
-        
+
         <div>
           <label htmlFor="phone" className="block text-sm font-medium mb-1">
             Phone Number *
@@ -153,7 +169,7 @@ const BookingForm = () => {
       {/* Booking Details */}
       <div className="space-y-4">
         <h3 className="font-playfair text-xl">Booking Details</h3>
-        
+
         <div>
           <label htmlFor="serviceType" className="block text-sm font-medium mb-1">
             Service Type *
@@ -176,7 +192,7 @@ const BookingForm = () => {
             <option value="Other">Other</option>
           </select>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="date" className="block text-sm font-medium mb-1">
@@ -193,10 +209,10 @@ const BookingForm = () => {
                 min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              {/* Native date picker indicator is usually sufficient. Custom icon removed to prevent duplications. */}
             </div>
           </div>
-          
+
           <div>
             <label htmlFor="time" className="block text-sm font-medium mb-1">
               Preferred Time
@@ -211,7 +227,7 @@ const BookingForm = () => {
             />
           </div>
         </div>
-        
+
         <div>
           <label htmlFor="location" className="block text-sm font-medium mb-1">
             Location *
@@ -227,7 +243,7 @@ const BookingForm = () => {
             placeholder="Event location or 'Studio' for in-studio sessions"
           />
         </div>
-        
+
         <div>
           <label htmlFor="specialInstructions" className="block text-sm font-medium mb-1">
             Special Instructions
@@ -248,11 +264,11 @@ const BookingForm = () => {
       <div className="bg-blue-50 p-4 rounded-md flex items-start">
         <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
         <p className="text-sm text-blue-700">
-          After submitting your booking request, we'll get back to you within 24 hours to confirm 
+          After submitting your booking request, we'll get back to you within 24 hours to confirm
           availability and discuss any additional details.
         </p>
       </div>
-      
+
       <button
         type="submit"
         className="btn-primary w-full"
