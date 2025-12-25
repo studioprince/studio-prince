@@ -26,7 +26,7 @@ const Footer = () => {
               <a
                 href="https://facebook.com"
                 target="_blank"
-                rel="noopener noreferrer" 
+                rel="noopener noreferrer"
                 className="hover:text-accent transition-colors"
                 aria-label="Facebook"
               >
@@ -68,7 +68,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/auth" className="text-gray-300 hover:text-accent transition-colors">
-                  Client Area
+                  Dashboard
                 </Link>
               </li>
             </ul>

@@ -61,7 +61,7 @@ const Auth = () => {
           </h1>
           <p className="text-gray-600 mt-2">
             {isLogin
-              ? "Sign in to access your Studio Prince client area"
+              ? "Sign in to access your Studio Prince account"
               : "Join Studio Prince to manage your photography sessions"}
           </p>
           {message && (
