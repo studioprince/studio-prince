@@ -62,6 +62,8 @@ const AdminGalleryUpload = () => {
         );
     };
 
+    const [uploadProgress, setUploadProgress] = useState(0);
+
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (selectedClients.length === 0 || selectedFiles.length === 0) {
@@ -70,25 +72,72 @@ const AdminGalleryUpload = () => {
         }
 
         setUploading(true);
-        const formData = new FormData();
-        // Send userIds as JSON string
-        formData.append('userIds', JSON.stringify(selectedClients));
-        formData.append('title', title);
-        formData.append('expiryHours', expiry);
-
-        selectedFiles.forEach(file => {
-            formData.append('photos', file);
-        });
+        setUploadProgress(0);
 
         try {
-            const response = await fetch('/api/gallery/upload', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+            // 1. Get Signature from Server
+            const signRes = await fetch('/api/gallery/sign-upload', {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (response.ok) {
-                const data = await response.json();
+            if (!signRes.ok) throw new Error('Failed to initialize upload');
+
+            const { signature, timestamp, cloudName, apiKey, folder } = await signRes.json();
+
+            // 2. Upload Files to Cloudinary directly
+            const uploadedPhotos: any[] = [];
+            const totalFiles = selectedFiles.length;
+
+            for (let i = 0; i < totalFiles; i++) {
+                const file = selectedFiles[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('api_key', apiKey);
+                formData.append('timestamp', timestamp.toString());
+                formData.append('signature', signature);
+                formData.append('folder', folder);
+
+                // Use 'auto' resource type to handle both images and potential videos securely
+                const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadRes.ok) {
+                    throw new Error(`Failed to upload ${file.name}`);
+                }
+
+                const data = await uploadRes.json();
+
+                uploadedPhotos.push({
+                    path: data.secure_url,
+                    publicId: data.public_id,
+                    originalName: file.name,
+                    mimeType: `image/${data.format}`, // Cloudinary returns format like 'jpg'
+                    size: data.bytes
+                });
+
+                // Update progress
+                setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
+            }
+
+            // 3. Save Metadata to Backend
+            const saveRes = await fetch('/api/gallery/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userIds: selectedClients,
+                    title,
+                    expiryHours: expiry,
+                    photos: uploadedPhotos
+                })
+            });
+
+            if (saveRes.ok) {
+                const data = await saveRes.json();
                 toast({ title: "Success", description: "Photos uploaded and shared successfully!" });
 
                 // Show QR Modal
@@ -102,12 +151,14 @@ const AdminGalleryUpload = () => {
                 setSelectedClients([]);
                 setExpiry('0');
             } else {
-                throw new Error('Upload failed');
+                throw new Error('Failed to save gallery');
             }
         } catch (error) {
-            toast({ title: "Error", description: "Failed to upload photos.", variant: "destructive" });
+            console.error(error);
+            toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to upload photos.", variant: "destructive" });
         } finally {
             setUploading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -223,7 +274,7 @@ const AdminGalleryUpload = () => {
 
                         <div className="pt-4 border-t flex justify-end">
                             <Button type="submit" disabled={uploading} className="w-full md:w-auto min-w-[200px]">
-                                {uploading ? "Uploading..." : "Upload & Share"}
+                                {uploading ? `Uploading... ${uploadProgress}%` : "Upload & Share"}
                             </Button>
                         </div>
                     </form>

@@ -354,23 +354,41 @@ app.put('/api/bookings/:id/status', async (req, res) => {
 });
 
 // --- GALLERY ROUTES ---
-app.post('/api/gallery/upload', authenticateToken, upload.array('photos', 20), async (req, res) => {
+// --- GALLERY ROUTES ---
+
+// 1. Generate Signature for Client-Side Upload
+app.get('/api/gallery/sign-upload', authenticateToken, (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
+
+    const timestamp = Math.round((new Date).getTime() / 1000);
+    const folder = 'studio-prince-gallery'; // Fixed folder
+
+    // Generate signature
+    const signature = cloudinary.utils.api_sign_request({
+        timestamp: timestamp,
+        folder: folder
+    }, process.env.CLOUDINARY_API_SECRET);
+
+    res.json({
+        signature,
+        timestamp,
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+        apiKey: process.env.CLOUDINARY_API_KEY,
+        folder
+    });
+});
+
+// 2. Save Gallery Metadata (Client sends file info after upload)
+app.post('/api/gallery/upload', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
 
-        const { userIds, title, expiryHours } = req.body;
-        let parsedUserIds = [];
-        try { parsedUserIds = JSON.parse(userIds); } catch (e) { if (userIds) parsedUserIds = [userIds]; }
+        // Expect userIds and photos array in JSON body
+        const { userIds, title, expiryHours, photos } = req.body;
 
-        if (!parsedUserIds || !req.files) return res.status(400).json({ message: 'Missing data' });
-
-        const photos = req.files.map(file => ({
-            path: file.path, // Cloudinary URL
-            publicId: file.filename, // Cloudinary Public ID
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size
-        }));
+        if (!userIds || !photos || !Array.isArray(photos)) {
+            return res.status(400).json({ message: 'Missing data or invalid format' });
+        }
 
         let expiresAt = null;
         let isAutoDeleteEnabled = false;
@@ -381,19 +399,28 @@ app.post('/api/gallery/upload', authenticateToken, upload.array('photos', 20), a
         }
 
         const publicToken = crypto.randomBytes(16).toString('hex');
-        const gallery = new Gallery({ userIds: parsedUserIds, adminId: req.user.id, photos, title, expiresAt, isAutoDeleteEnabled, publicToken });
+        const gallery = new Gallery({
+            userIds, // Already an array from client
+            adminId: req.user.id,
+            photos, // Already in correct format: { path, publicId, originalName, mimeType, size }
+            title,
+            expiresAt,
+            isAutoDeleteEnabled,
+            publicToken
+        });
+
         await gallery.save();
 
         const baseUrl = process.env.VITE_API_URL || 'http://localhost:5173'; // Frontend URL
         res.status(201).json({
-            message: 'Uploaded',
+            message: 'Gallery created',
             gallery,
             shareUrl: `${baseUrl}/gallery/shared/${publicToken}`,
             publicToken
         });
     } catch (error) {
-        console.error('Upload error:', error);
-        res.status(500).json({ message: 'Upload failed' });
+        console.error('Gallery creation error:', error);
+        res.status(500).json({ message: 'Failed to create gallery' });
     }
 });
 
