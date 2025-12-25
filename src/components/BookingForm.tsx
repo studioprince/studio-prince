@@ -30,7 +30,7 @@ const initialFormState: BookingFormData = {
   specialInstructions: '',
 };
 
-const BookingForm = () => {
+const BookingForm = ({ bookingType = 'shoot' }: { bookingType?: 'shoot' | 'studio' }) => {
   const [formData, setFormData] = useState<BookingFormData>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -74,9 +74,10 @@ const BookingForm = () => {
           email: formData.email,
           phone: formData.phone,
           serviceType: formData.serviceType,
+          bookingType: bookingType, // Send the booking type (shoot/studio) to backend
           date: formData.date,
           time: formData.time,
-          location: formData.location,
+          location: bookingType === 'studio' ? 'Studio Prince, Mumbai' : formData.location,
           specialInstructions: formData.specialInstructions,
         }),
       });
@@ -172,7 +173,7 @@ const BookingForm = () => {
 
         <div>
           <label htmlFor="serviceType" className="block text-sm font-medium mb-1">
-            Service Type *
+            {bookingType === 'studio' ? 'Rental Option *' : 'Service Type *'}
           </label>
           <select
             id="serviceType"
@@ -182,14 +183,26 @@ const BookingForm = () => {
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">Select a service</option>
-            <option value="Wedding Photography">Wedding Photography</option>
-            <option value="Portrait Session">Portrait Session</option>
-            <option value="Family Portrait">Family Portrait</option>
-            <option value="Event Coverage">Event Coverage</option>
-            <option value="Product Photography">Product Photography</option>
-            <option value="Commercial Shoot">Commercial Shoot</option>
-            <option value="Other">Other</option>
+            <option value="">Select a {bookingType === 'studio' ? 'rental option' : 'service'}</option>
+
+            {bookingType === 'studio' ? (
+              <>
+                <option value="Hourly Rental">Hourly Rental</option>
+                <option value="Half Day Rental (4h)">Half Day Rental (4h)</option>
+                <option value="Full Day Rental (8h)">Full Day Rental (8h)</option>
+                <option value="Exhibition/Event Space">Exhibition/Event Space</option>
+              </>
+            ) : (
+              <>
+                <option value="Wedding Photography">Wedding Photography</option>
+                <option value="Portrait Session">Portrait Session</option>
+                <option value="Family Portrait">Family Portrait</option>
+                <option value="Event Coverage">Event Coverage</option>
+                <option value="Product Photography">Product Photography</option>
+                <option value="Commercial Shoot">Commercial Shoot</option>
+                <option value="Other">Other</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -240,7 +253,9 @@ const BookingForm = () => {
             value={formData.location}
             onChange={handleChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Event location or 'Studio' for in-studio sessions"
+            placeholder={bookingType === 'studio' ? 'Studio Address (Pre-filled)' : "Event location or 'Studio' for in-studio sessions"}
+            readOnly={bookingType === 'studio'}
+            value={bookingType === 'studio' ? 'Studio Prince, Mumbai' : formData.location}
           />
         </div>
 

@@ -1,46 +1,65 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import BookingForm from '@/components/BookingForm';
 
 const Booking = () => {
+  const location = useLocation();
+  const [bookingType, setBookingType] = useState<'shoot' | 'studio'>('shoot');
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    if (location.state && location.state.type === 'studio') {
+      setBookingType('studio');
+    }
+  }, [location]);
 
   return (
     <main className="pt-24">
       {/* Booking Header */}
       <section className="bg-gray-900 text-white py-16">
         <div className="container-custom text-center">
-          <h1 className="text-3xl md:text-4xl font-playfair font-semibold mb-4">Book a Session</h1>
+          <h1 className="text-3xl md:text-4xl font-playfair font-semibold mb-4">Book with Studio Prince</h1>
           <p className="max-w-2xl mx-auto">
-            Fill out the form below to request a photography session with Studio Prince.
+            {bookingType === 'shoot'
+              ? "Fill out the form below to request a photography session."
+              : "Reserve our professional studio space for your creative projects."}
           </p>
-        </div>
-      </section>
-
-      {/* Admin Instructions Alert */}
-      <section className="section bg-blue-50">
-        <div className="container-custom max-w-4xl">
-          <div className="p-4 rounded-lg border border-blue-200 bg-blue-50">
-            <h3 className="font-semibold text-blue-800 mb-2">How the booking system works:</h3>
-            <ol className="list-decimal pl-5 text-blue-700 space-y-1">
-              <li>Client fills out and submits this booking form</li>
-              <li>The booking gets stored in the system with "Pending" status</li>
-              <li>Admin logs in with <strong>aditya@admin.com / 123</strong> to view all booking requests</li>
-              <li>Admin can confirm, cancel or mark bookings as completed from the dashboard</li>
-            </ol>
-          </div>
         </div>
       </section>
 
       {/* Booking Form Section */}
       <section className="section">
         <div className="container-custom max-w-4xl">
-          <div className="bg-white p-6 md:p-8 rounded-lg shadow-sm">
-            <BookingForm />
+
+          {/* Toggle Switch */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-gray-100 p-1 rounded-full inline-flex">
+              <button
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${bookingType === 'shoot'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                onClick={() => setBookingType('shoot')}
+              >
+                Book a Shoot
+              </button>
+              <button
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${bookingType === 'studio'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                onClick={() => setBookingType('studio')}
+              >
+                Rent Studio
+              </button>
+            </div>
           </div>
-          
+
+          <div className="bg-white p-6 md:p-8 rounded-lg shadow-sm">
+            <BookingForm bookingType={bookingType} />
+          </div>
+
           <div className="mt-12 text-center text-gray-600">
             <p>
               If you prefer to book by phone, you can also call us at{' '}
@@ -63,40 +82,40 @@ const Booking = () => {
               Common questions about our booking process and photography services
             </p>
           </div>
-          
+
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-semibold mb-2">How far in advance should I book?</h3>
               <p className="text-gray-600">
-                We recommend booking at least 4-6 weeks in advance for portrait sessions and 6-12 months 
-                in advance for weddings to ensure availability. However, we do accommodate last-minute 
+                We recommend booking at least 4-6 weeks in advance for portrait sessions and 6-12 months
+                in advance for weddings to ensure availability. However, we do accommodate last-minute
                 bookings when our schedule permits.
               </p>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-semibold mb-2">What is your cancellation policy?</h3>
               <p className="text-gray-600">
-                We understand that plans change. For portrait sessions, we request at least 48 hours' 
-                notice for cancellations or rescheduling. For weddings and events, our policy varies 
+                We understand that plans change. For portrait sessions, we request at least 48 hours'
+                notice for cancellations or rescheduling. For weddings and events, our policy varies
                 based on the agreement, but typically requires 30 days' notice.
               </p>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-semibold mb-2">Do you require a deposit?</h3>
               <p className="text-gray-600">
-                Yes, we require a non-refundable deposit to secure your booking date. The deposit amount 
-                varies depending on the service. The remaining balance is due before or on the day of 
+                Yes, we require a non-refundable deposit to secure your booking date. The deposit amount
+                varies depending on the service. The remaining balance is due before or on the day of
                 the photography session.
               </p>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="font-semibold mb-2">How long until I receive my photos?</h3>
               <p className="text-gray-600">
-                Delivery time varies by service. Typically, portrait sessions are delivered within 1-2 weeks, 
-                while weddings and larger events can take 4-6 weeks. We provide a few preview images sooner 
+                Delivery time varies by service. Typically, portrait sessions are delivered within 1-2 weeks,
+                while weddings and larger events can take 4-6 weeks. We provide a few preview images sooner
                 so you can share while waiting for the full gallery.
               </p>
             </div>

@@ -275,7 +275,7 @@ const AdminInvoices = () => {
                 </div>
 
                 {/* Info Panel */}
-                <div className="md:col-span-1">
+                {/* <div className="md:col-span-1">
                     <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
                         <h3 className="font-semibold text-blue-800 mb-2">How this works</h3>
                         <p className="text-sm text-blue-600 mb-4">
@@ -286,7 +286,7 @@ const AdminInvoices = () => {
                             You currently have {clients.length} registered clients.
                         </p>
                     </div>
-                </div>
+                </div> */}
             </div>
         </main>
     );

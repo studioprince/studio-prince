@@ -11,6 +11,7 @@ const bookingSchema = new mongoose.Schema({
     time: { type: String },
     location: { type: String, required: true },
     specialInstructions: { type: String },
+    bookingType: { type: String, default: 'shoot', enum: ['shoot', 'studio'] },
     status: { type: String, default: 'pending', enum: ['pending', 'confirmed', 'completed', 'cancelled'] },
     createdAt: { type: Date, default: Date.now }
 });

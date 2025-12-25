@@ -198,7 +198,22 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             from: process.env.EMAIL_USER,
             to: user.email,
             subject: 'Password Reset Request',
-            text: `Reset your password here: ${resetUrl}`
+            text: `Hello,
+
+We received a request to reset the password for your Studio Prince account.
+Please click the secure link below to create a new password and regain access to your account.
+
+${resetUrl}
+
+If you did not request this password reset, you can safely ignore this email — no changes will be made to your account.
+
+For any assistance, feel free to reach out to our support team.
+
+Regards,
+Studio Prince
+Support Team
+ `
+
         };
 
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {

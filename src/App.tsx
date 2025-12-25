@@ -15,6 +15,7 @@ import ProfileSetup from "./pages/ProfileSetup";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminInvoices from "./pages/AdminInvoices";
 import AboutUs from "./pages/AboutUs";
+import OurStudio from "./pages/OurStudio";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -82,6 +83,7 @@ const App = () => {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/our-studio" element={<OurStudio />} />
             <Route path="/profile-setup" element={
               <ProtectedRoute allowedRoles={['client', 'admin']}>
                 <ProfileSetup />

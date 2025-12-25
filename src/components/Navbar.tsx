@@ -48,18 +48,18 @@ const Navbar = () => {
   };
 
   return (
-    <header 
+    <header
       className={cn(
         'fixed top-0 w-full z-50 transition-all duration-300',
-        isScrolled 
-          ? 'bg-white shadow-md py-3' 
+        isScrolled
+          ? 'bg-white shadow-md py-3'
           : 'bg-transparent py-6'
       )}
     >
       <div className="container-custom flex items-center justify-between">
         {/* Logo */}
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className={cn(
             "font-playfair font-semibold text-2xl tracking-wider",
             textColor
@@ -70,57 +70,67 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className={cn(
-              "nav-link uppercase text-sm", 
+              "nav-link uppercase text-sm",
               isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/') && "text-accent"
             )}
           >
             Home
           </Link>
-          <Link 
-            to="/about" 
+          <Link
+            to="/about"
             className={cn(
-              "nav-link uppercase text-sm", 
+              "nav-link uppercase text-sm",
               isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/about') && "text-accent"
             )}
           >
             About
           </Link>
-          <Link 
-            to="/portfolio" 
+          <Link
+            to="/portfolio"
             className={cn(
-              "nav-link uppercase text-sm", 
+              "nav-link uppercase text-sm",
               isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/portfolio') && "text-accent"
             )}
           >
             Portfolio
           </Link>
-          <Link 
-            to="/booking" 
+          <Link
+            to="/our-studio"
             className={cn(
-              "nav-link uppercase text-sm", 
+              "nav-link uppercase text-sm",
+              isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
+              isActive('/our-studio') && "text-accent"
+            )}
+          >
+            Our Studio
+          </Link>
+          <Link
+            to="/booking"
+            className={cn(
+              "nav-link uppercase text-sm",
               isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/booking') && "text-accent"
             )}
           >
             Book Now
           </Link>
-          <Link 
-            to="/contact" 
+          <Link
+            to="/contact"
             className={cn(
-              "nav-link uppercase text-sm", 
+              "nav-link uppercase text-sm",
               isHomepage && !isScrolled ? "text-white hover:text-accent nav-text-shadow" : "",
               isActive('/contact') && "text-accent"
             )}
           >
             Contact
           </Link>
-          
+
           {user ? (
             <div className="flex items-center space-x-2">
               <Link
@@ -175,57 +185,66 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white shadow-lg">
           <div className="container-custom py-4 flex flex-col space-y-4">
-            <Link 
-              to="/" 
-              className={cn("py-2 px-4 text-center", 
+            <Link
+              to="/"
+              className={cn("py-2 px-4 text-center",
                 isActive('/') && "text-accent"
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
             </Link>
-            <Link 
-              to="/about" 
-              className={cn("py-2 px-4 text-center", 
+            <Link
+              to="/about"
+              className={cn("py-2 px-4 text-center",
                 isActive('/about') && "text-accent"
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
               About
             </Link>
-            <Link 
-              to="/portfolio" 
-              className={cn("py-2 px-4 text-center", 
+            <Link
+              to="/portfolio"
+              className={cn("py-2 px-4 text-center",
                 isActive('/portfolio') && "text-accent"
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
               Portfolio
             </Link>
-            <Link 
-              to="/booking" 
-              className={cn("py-2 px-4 text-center", 
+            <Link
+              to="/our-studio"
+              className={cn("py-2 px-4 text-center",
+                isActive('/our-studio') && "text-accent"
+              )}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Our Studio
+            </Link>
+            <Link
+              to="/booking"
+              className={cn("py-2 px-4 text-center",
                 isActive('/booking') && "text-accent"
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
               Book Now
             </Link>
-            <Link 
-              to="/contact" 
-              className={cn("py-2 px-4 text-center", 
+            <Link
+              to="/contact"
+              className={cn("py-2 px-4 text-center",
                 isActive('/contact') && "text-accent"
               )}
               onClick={() => setMobileMenuOpen(false)}
             >
               Contact
             </Link>
-            
+
             {user ? (
               <>
-                <Link 
-                  to="/dashboard" 
-                  className={cn("py-2 px-4 text-center", 
+                <Link
+                  to="/dashboard"
+                  className={cn("py-2 px-4 text-center",
                     isActive('/dashboard') && "text-accent"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
@@ -244,8 +263,8 @@ const Navbar = () => {
                 </button>
               </>
             ) : (
-              <Link 
-                to="/auth" 
+              <Link
+                to="/auth"
                 className="py-2 px-4 text-center flex justify-center items-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
